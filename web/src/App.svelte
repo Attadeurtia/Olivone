@@ -3,13 +3,14 @@
   import Login from './lib/Login.svelte'
   import Settings from './lib/Settings.svelte'
   import Users from './lib/Users.svelte'
+  import Candidature from './lib/Candidature.svelte'
 
   type Theme = 'auto' | 'light' | 'dark'
   type View = 'candidature' | 'agenda' | 'prompt' | 'reglages' | 'utilisateurs'
 
   let user = $state<User | null>(null)
   let loading = $state(true)
-  let view = $state<View>('reglages')
+  let view = $state<View>('candidature')
   let theme = $state<Theme>(readTheme())
 
   function readTheme(): Theme {
@@ -50,9 +51,8 @@
   }
 
   const futureViews: { id: View; label: string; milestone: string }[] = [
-    { id: 'candidature', label: 'Candidature', milestone: 'M2' },
     { id: 'agenda', label: 'Agenda', milestone: 'M4' },
-    { id: 'prompt', label: 'Prompt', milestone: 'M2' },
+    { id: 'prompt', label: 'Prompt', milestone: 'M4' },
   ]
 </script>
 
@@ -65,6 +65,7 @@
     <header>
       <div class="brand">Olivone</div>
       <nav>
+        <button class="tab" class:active={view === 'candidature'} onclick={() => (view = 'candidature')}>Candidature</button>
         {#each futureViews as v}
           <button
             class="tab"
@@ -96,7 +97,9 @@
     </header>
 
     <main>
-      {#if view === 'reglages'}
+      {#if view === 'candidature'}
+        <Candidature />
+      {:else if view === 'reglages'}
         <Settings />
       {:else if view === 'utilisateurs' && user.is_admin}
         <Users />
