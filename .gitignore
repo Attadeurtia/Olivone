@@ -241,3 +241,6 @@ web/dist/
 # Binaire de build
 /bin/
 
+# Outils de dev téléchargés (binaire Typst, etc.)
+/tools/
+

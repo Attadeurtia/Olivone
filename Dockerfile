@@ -16,14 +16,21 @@ RUN go mod download
 COPY server/ ./
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/olivone ./cmd/olivone
 
-# ── 3) Image finale minimale ─────────────────────────────────────────────────
-# NB : Typst (rendu PDF) sera ajouté au jalon M2, quand on générera les lettres.
+# ── 3) Récupération du binaire Typst (rendu PDF des lettres) ─────────────────
+FROM alpine:3.20 AS typst
+ARG TYPST_VERSION=v0.15.1
+RUN apk add --no-cache curl tar xz \
+ && curl -fsSL https://github.com/typst/typst/releases/download/${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz -o /tmp/typst.tar.xz \
+ && mkdir -p /tmp/typst && tar -xJf /tmp/typst.tar.xz -C /tmp/typst --strip-components=1 \
+ && install -m 0755 /tmp/typst/typst /usr/local/bin/typst
+
+# ── 4) Image finale minimale ─────────────────────────────────────────────────
 FROM alpine:3.20
 RUN adduser -D -u 1000 olivone
 WORKDIR /app
 COPY --from=server /out/olivone /app/olivone
 COPY --from=web /web/dist /app/web
-COPY server/prompt/prompt_app.default.md /app/prompt/prompt_app.default.md
+COPY --from=typst /usr/local/bin/typst /usr/local/bin/typst
 ENV OLIVONE_ENV=prod \
     OLIVONE_BIND=:8080 \
     OLIVONE_DATA_DIR=/data \

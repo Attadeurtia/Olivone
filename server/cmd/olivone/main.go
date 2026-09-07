@@ -15,6 +15,7 @@ import (
 
 	"github.com/attadeurtia/olivone/internal/config"
 	"github.com/attadeurtia/olivone/internal/httpapi"
+	"github.com/attadeurtia/olivone/internal/prompt"
 	"github.com/attadeurtia/olivone/internal/store"
 )
 
@@ -38,6 +39,11 @@ func main() {
 		os.Exit(1)
 	}
 	defer func() { _ = st.Close() }()
+
+	// Crée data/prompt_app.md au premier démarrage (éditable par fichier).
+	if _, err := prompt.EnsureAppPrompt(cfg.DataDir); err != nil {
+		slog.Warn("prompt applicatif", "err", err)
+	}
 
 	handler := httpapi.New(cfg, st)
 	if err := handler.EnsureBootstrap(); err != nil {

@@ -18,6 +18,7 @@ type Config struct {
 	Bind          string // ex. ":8080"
 	DataDir       string // dossier des données (base SQLite, fichiers)
 	WebDir        string // dossier du frontend construit ; vide => placeholder embarqué
+	TypstBin      string // chemin du binaire Typst (défaut "typst" via le PATH)
 	BaseURL       string // URL publique (liens dans e-mails / iCal)
 	MasterKey     []byte // 32 octets, pour chiffrer les secrets par utilisateur
 	AdminEmail    string // compte admin créé au premier démarrage
@@ -39,6 +40,7 @@ func Load(version string) (Config, error) {
 		Bind:          getenv("OLIVONE_BIND", ":8080"),
 		DataDir:       getenv("OLIVONE_DATA_DIR", "./data"),
 		WebDir:        getenv("OLIVONE_WEB_DIR", ""),
+		TypstBin:      getenv("OLIVONE_TYPST_BIN", "typst"),
 		BaseURL:       getenv("OLIVONE_BASE_URL", "http://localhost:8080"),
 		AdminEmail:    getenv("OLIVONE_ADMIN_EMAIL", ""),
 		AdminPassword: getenv("OLIVONE_ADMIN_PASSWORD", ""),
