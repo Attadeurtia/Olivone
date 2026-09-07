@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/attadeurtia/olivone/internal/applications"
 	"github.com/attadeurtia/olivone/internal/auth"
 	"github.com/attadeurtia/olivone/internal/config"
 	"github.com/attadeurtia/olivone/internal/store"
+	"github.com/attadeurtia/olivone/internal/typst"
 	"github.com/attadeurtia/olivone/internal/users"
 )
 
@@ -19,17 +21,20 @@ type Server struct {
 	store   *store.Store
 	users   *users.Service
 	auth    *auth.Manager
+	apps    *applications.Service
 	handler http.Handler
 }
 
 // New construit le serveur (services + routes). Le résultat implémente
 // http.Handler.
 func New(cfg config.Config, st *store.Store) *Server {
+	usersSvc := users.NewService(st.DB, cfg.MasterKey)
 	s := &Server{
 		cfg:   cfg,
 		store: st,
-		users: users.NewService(st.DB, cfg.MasterKey),
+		users: usersSvc,
 		auth:  auth.NewManager(st.DB, cfg.Env == "prod"),
+		apps:  applications.NewService(st.DB, usersSvc, typst.New(cfg.TypstBin), cfg.DataDir),
 	}
 	s.routes()
 	return s
@@ -62,6 +67,17 @@ func (s *Server) routes() {
 	// Gestion des comptes (admin).
 	mux.Handle("GET /api/users", s.requireAdmin(http.HandlerFunc(s.handleListUsers)))
 	mux.Handle("POST /api/users", s.requireAdmin(http.HandlerFunc(s.handleCreateUser)))
+
+	// Candidatures (utilisateur courant).
+	mux.Handle("POST /api/applications", s.requireAuth(http.HandlerFunc(s.handleCreateApplication)))
+	mux.Handle("GET /api/applications", s.requireAuth(http.HandlerFunc(s.handleListApplications)))
+	mux.Handle("GET /api/applications/{id}", s.requireAuth(http.HandlerFunc(s.handleGetApplication)))
+	mux.Handle("GET /api/applications/{id}/letter.md", s.requireAuth(http.HandlerFunc(s.handleGetLetterMD)))
+	mux.Handle("GET /api/applications/{id}/letter.pdf", s.requireAuth(http.HandlerFunc(s.handleGetLetterPDF)))
+	mux.Handle("PUT /api/applications/{id}/letter", s.requireAuth(http.HandlerFunc(s.handleUpdateLetter)))
+	mux.Handle("POST /api/applications/{id}/regenerate", s.requireAuth(http.HandlerFunc(s.handleRegenerate)))
+	mux.Handle("PATCH /api/applications/{id}", s.requireAuth(http.HandlerFunc(s.handlePatchApplication)))
+	mux.Handle("DELETE /api/applications/{id}", s.requireAuth(http.HandlerFunc(s.handleDeleteApplication)))
 
 	// Route API inconnue -> 404 JSON.
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) {

@@ -127,6 +127,20 @@ func (s *Service) GetCredentials(email string) (User, string, error) {
 	return u, hash, err
 }
 
+// GetDefaultTemplate renvoie le contenu du template de prompt par défaut de
+// l'utilisateur (chaîne vide s'il n'y en a pas).
+func (s *Service) GetDefaultTemplate(userID int64) (string, error) {
+	var content string
+	err := s.DB.QueryRow(
+		`SELECT content_md FROM templates WHERE user_id = ? AND is_default = 1 ORDER BY id LIMIT 1`,
+		userID,
+	).Scan(&content)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	return content, err
+}
+
 // List renvoie tous les utilisateurs (usage admin).
 func (s *Service) List() ([]User, error) {
 	rows, err := s.DB.Query(`SELECT id, email, display_name, is_admin, created_at FROM users ORDER BY id`)
