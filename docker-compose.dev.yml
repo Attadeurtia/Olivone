@@ -1,0 +1,44 @@
+# Stack de développement local : l'app + un faux SMTP (Mailpit) + un serveur
+# SMTP/IMAP de test (GreenMail). Aucun e-mail réel n'est envoyé.
+# Lancer :  docker compose -f docker-compose.dev.yml up --build
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      OLIVONE_ENV: dev
+      OLIVONE_BIND: ":8080"
+      OLIVONE_DATA_DIR: /data
+      OLIVONE_WEB_DIR: /app/web
+      OLIVONE_BASE_URL: "http://localhost:8080"
+      # Clé de dev UNIQUEMENT (jamais en production). 32 octets en base64.
+      OLIVONE_MASTER_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+      OLIVONE_ADMIN_EMAIL: "attadeurtia@vivaldi.net"
+      OLIVONE_ADMIN_PASSWORD: "changeme"
+    volumes:
+      - olivone_data:/data
+    depends_on:
+      - mailpit
+      - greenmail
+
+  # Faux serveur SMTP + interface web pour inspecter les mails "envoyés".
+  # UI : http://localhost:8025 — SMTP : mailpit:1025
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+  # Serveur SMTP + IMAP de test (pour la détection de réponses au jalon M5).
+  greenmail:
+    image: greenmail/standalone:latest
+    environment:
+      GREENMAIL_OPTS: "-Dgreenmail.setup.test.all -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.auth.disabled -Dgreenmail.verbose"
+    ports:
+      - "3025:3025" # SMTP
+      - "3143:3143" # IMAP
+      - "3993:3993" # IMAPS
+
+volumes:
+  olivone_data:

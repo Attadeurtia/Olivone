@@ -216,3 +216,28 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ── Olivone (Go + Node + runtime) ────────────────────────────────────────────
+# Données applicatives (base SQLite, PDF, lettres générées) — NE JAMAIS committer
+/data/
+*.db
+*.db-wal
+*.db-shm
+
+# Secrets d'environnement (renforce la règle .env ci-dessus)
+.env
+.env.*
+!.env.example
+
+# Node / frontend
+node_modules/
+web/dist/
+
+# Go
+/server/bin/
+*.test
+*.out
+
+# Binaire de build
+/bin/
+

@@ -1,0 +1,27 @@
+# Exemple de configuration SWAG pour Olivone.
+# Copier vers :  swag/config/nginx/proxy-confs/olivone.subdomain.conf
+# puis adapter le sous-domaine et le nom du conteneur si besoin.
+#
+# Prérequis : le conteneur `olivone` doit être joignable depuis SWAG
+# (même réseau Docker). Voir les notes réseau dans docker-compose.yml.
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+
+    server_name olivone.*;
+
+    include /config/nginx/ssl.conf;
+
+    # Autoriser l'upload de PDF d'offres / CV.
+    client_max_body_size 25m;
+
+    location / {
+        include /config/nginx/proxy.conf;
+        include /config/nginx/resolver.conf;
+        set $upstream_app olivone;
+        set $upstream_port 8080;
+        set $upstream_proto http;
+        proxy_pass $upstream_proto://$upstream_app:$upstream_port;
+    }
+}

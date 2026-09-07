@@ -1,0 +1,35 @@
+# Déploiement (serveur, derrière SWAG). Les secrets viennent d'un fichier .env
+# NON versionné, placé à côté de ce fichier. Voir .env.example.
+#
+#   OLIVONE_MASTER_KEY, OLIVONE_BASE_URL, OLIVONE_ADMIN_EMAIL, OLIVONE_ADMIN_PASSWORD
+#
+services:
+  olivone:
+    build: .
+    image: olivone:latest
+    container_name: olivone
+    restart: unless-stopped
+    environment:
+      OLIVONE_ENV: prod
+      OLIVONE_BIND: ":8080"
+      OLIVONE_DATA_DIR: /data
+      OLIVONE_WEB_DIR: /app/web
+      OLIVONE_BASE_URL: ${OLIVONE_BASE_URL}
+      OLIVONE_MASTER_KEY: ${OLIVONE_MASTER_KEY}
+      OLIVONE_ADMIN_EMAIL: ${OLIVONE_ADMIN_EMAIL}
+      OLIVONE_ADMIN_PASSWORD: ${OLIVONE_ADMIN_PASSWORD}
+    volumes:
+      - olivone_data:/data
+    # Accès direct pour tester ; à retirer si SWAG proxifie via le réseau interne.
+    ports:
+      - "8080:8080"
+    # Pour passer derrière SWAG, rejoindre son réseau :
+    # networks:
+    #   - swag
+    #   default:
+
+volumes:
+  olivone_data:
+# networks:
+#   swag:
+#     external: true
