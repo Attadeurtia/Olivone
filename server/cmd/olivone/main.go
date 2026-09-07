@@ -40,6 +40,11 @@ func main() {
 	defer func() { _ = st.Close() }()
 
 	handler := httpapi.New(cfg, st)
+	if err := handler.EnsureBootstrap(); err != nil {
+		slog.Error("bootstrap admin", "err", err)
+		os.Exit(1)
+	}
+
 	srv := &http.Server{
 		Addr:              cfg.Bind,
 		Handler:           handler,

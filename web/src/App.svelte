@@ -1,11 +1,16 @@
 <script lang="ts">
-  // Frontend M0 : en-tête, sélecteur de thème jour/nuit, état de l'API.
-  // Les écrans (Candidature, Agenda, Prompt, Réglages) arriveront aux
-  // jalons suivants.
-  type Theme = 'auto' | 'light' | 'dark'
+  import { api, type User } from './lib/api'
+  import Login from './lib/Login.svelte'
+  import Settings from './lib/Settings.svelte'
+  import Users from './lib/Users.svelte'
 
+  type Theme = 'auto' | 'light' | 'dark'
+  type View = 'candidature' | 'agenda' | 'prompt' | 'reglages' | 'utilisateurs'
+
+  let user = $state<User | null>(null)
+  let loading = $state(true)
+  let view = $state<View>('reglages')
   let theme = $state<Theme>(readTheme())
-  let health = $state('vérification…')
 
   function readTheme(): Theme {
     try {
@@ -14,122 +19,158 @@
       return 'auto'
     }
   }
-
-  function applyTheme(t: Theme) {
-    const root = document.documentElement
-    if (t === 'auto') root.removeAttribute('data-theme')
-    else root.setAttribute('data-theme', t)
-  }
-
   function setTheme(t: Theme) {
     theme = t
     try {
       localStorage.setItem('olivone-theme', t)
     } catch {}
   }
-
   $effect(() => {
-    applyTheme(theme)
+    const r = document.documentElement
+    if (theme === 'auto') r.removeAttribute('data-theme')
+    else r.setAttribute('data-theme', theme)
   })
 
-  async function ping() {
+  async function loadMe() {
+    loading = true
     try {
-      const r = await fetch('/api/health')
-      const j = await r.json()
-      health = `${j.status} · v${j.version} · ${j.env}`
+      user = await api.get('/api/auth/me')
     } catch {
-      health = 'hors ligne'
+      user = null
     }
+    loading = false
   }
-  ping()
+  loadMe()
 
-  const views = ['Candidature', 'Agenda', 'Prompt', 'Réglages']
+  async function logout() {
+    try {
+      await api.post('/api/auth/logout')
+    } catch {}
+    user = null
+  }
+
+  const futureViews: { id: View; label: string; milestone: string }[] = [
+    { id: 'candidature', label: 'Candidature', milestone: 'M2' },
+    { id: 'agenda', label: 'Agenda', milestone: 'M4' },
+    { id: 'prompt', label: 'Prompt', milestone: 'M2' },
+  ]
 </script>
 
-<div class="wrap">
-  <header>
-    <h1>Olivone</h1>
-    <div class="themes" role="group" aria-label="Thème">
-      <button class:active={theme === 'auto'} onclick={() => setTheme('auto')}>Auto</button>
-      <button class:active={theme === 'light'} onclick={() => setTheme('light')}>Jour</button>
-      <button class:active={theme === 'dark'} onclick={() => setTheme('dark')}>Nuit</button>
-    </div>
-  </header>
+{#if loading}
+  <div class="splash muted">Chargement…</div>
+{:else if !user}
+  <Login onSuccess={(u) => (user = u)} {theme} {setTheme} />
+{:else}
+  <div class="shell">
+    <header>
+      <div class="brand">Olivone</div>
+      <nav>
+        {#each futureViews as v}
+          <button
+            class="tab"
+            class:active={view === v.id}
+            onclick={() => (view = v.id)}>{v.label}</button>
+        {/each}
+        <button class="tab" class:active={view === 'reglages'} onclick={() => (view = 'reglages')}>
+          Réglages
+        </button>
+        {#if user.is_admin}
+          <button
+            class="tab"
+            class:active={view === 'utilisateurs'}
+            onclick={() => (view = 'utilisateurs')}>Utilisateurs</button>
+        {/if}
+      </nav>
+      <div class="right">
+        <select
+          aria-label="Thème"
+          value={theme}
+          onchange={(e) => setTheme((e.currentTarget as HTMLSelectElement).value as Theme)}>
+          <option value="auto">Auto</option>
+          <option value="light">Jour</option>
+          <option value="dark">Nuit</option>
+        </select>
+        <span class="who muted">{user.email}</span>
+        <button class="btn btn-ghost" onclick={logout}>Déconnexion</button>
+      </div>
+    </header>
 
-  <p class="status">API : <b>{health}</b></p>
-
-  <nav>
-    {#each views as v}
-      <span class="pill">{v}</span>
-    {/each}
-  </nav>
-
-  <p class="hint">Squelette M0 — les écrans arriveront aux jalons suivants.</p>
-</div>
+    <main>
+      {#if view === 'reglages'}
+        <Settings />
+      {:else if view === 'utilisateurs' && user.is_admin}
+        <Users />
+      {:else}
+        {@const v = futureViews.find((f) => f.id === view)}
+        <div class="card placeholder">
+          <h2>{v?.label}</h2>
+          <p class="muted">Écran prévu au jalon {v?.milestone}. Rien à afficher pour l'instant.</p>
+        </div>
+      {/if}
+    </main>
+  </div>
+{/if}
 
 <style>
-  .wrap {
-    max-width: 720px;
+  .splash {
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+  }
+  .shell {
+    max-width: 860px;
     margin: 0 auto;
-    padding: 40px 20px;
+    padding: 20px;
   }
   header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 16px;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
   }
-  h1 {
-    margin: 0;
-    font-size: 28px;
+  .brand {
+    font-size: 20px;
+    font-weight: 700;
     letter-spacing: -0.02em;
-  }
-  .themes {
-    display: flex;
-    gap: 6px;
-  }
-  button {
-    padding: 7px 12px;
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    background: transparent;
-    color: var(--fg);
-    cursor: pointer;
-    font-size: 13px;
-  }
-  button.active {
-    background: var(--accent);
-    color: #fff;
-    border-color: var(--accent);
-  }
-  .status {
-    margin-top: 22px;
-    padding: 10px 12px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--accent) 10%, transparent);
-    font-size: 14px;
-  }
-  .status b {
-    color: var(--accent);
   }
   nav {
     display: flex;
+    gap: 4px;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 24px;
   }
-  .pill {
-    padding: 8px 14px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: var(--card);
+  .tab {
+    padding: 6px 12px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
     color: var(--muted);
+    cursor: pointer;
+    font: inherit;
     font-size: 14px;
   }
-  .hint {
-    margin-top: 24px;
-    color: var(--muted);
+  .tab.active {
+    color: var(--fg);
+    border-color: var(--border);
+    background: var(--card);
+  }
+  .right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .right select {
+    width: auto;
+  }
+  .who {
     font-size: 13px;
+  }
+  main {
+    padding-top: 20px;
+  }
+  .placeholder h2 {
+    margin: 0 0 6px;
   }
 </style>

@@ -5,6 +5,7 @@
   --muted: #6b6b66;
   --accent: #4f7d5b;
   --border: #e3e3df;
+  --danger: #c0392b;
 }
 
 /* Thème sombre automatique (préférence système), sauf override "light". */
@@ -16,6 +17,7 @@
     --muted: #9a9a94;
     --accent: #7fb98b;
     --border: #2c2e33;
+    --danger: #e06c5e;
   }
 }
 
@@ -27,6 +29,7 @@
   --muted: #9a9a94;
   --accent: #7fb98b;
   --border: #2c2e33;
+  --danger: #e06c5e;
 }
 
 * {
@@ -39,4 +42,75 @@ body {
   background: var(--bg);
   color: var(--fg);
   font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+}
+
+textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+
+.btn {
+  padding: 9px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+.field {
+  margin-bottom: 14px;
+}
+.row {
+  display: flex;
+  gap: 12px;
+}
+.row > * {
+  flex: 1;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+}
+.err {
+  color: var(--danger);
+  font-size: 13px;
+}
+.ok {
+  color: var(--accent);
+  font-size: 13px;
+}
+.muted {
+  color: var(--muted);
 }
