@@ -233,6 +233,9 @@ __marimo__/
 node_modules/
 web/dist/
 
+# Le template Python plus haut ignore "lib/" : ré-inclure le code source du frontend.
+!web/src/lib/
+
 # Go
 /server/bin/
 *.test
