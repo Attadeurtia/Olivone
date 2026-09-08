@@ -41,5 +41,7 @@ ENV OLIVONE_ENV=prod \
 RUN mkdir -p /data && chown olivone:olivone /data
 VOLUME /data
 EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://localhost:8080/api/health >/dev/null 2>&1 || exit 1
 USER olivone
 ENTRYPOINT ["/app/olivone"]

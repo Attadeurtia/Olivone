@@ -1,35 +1,37 @@
-# Déploiement (serveur, derrière SWAG). Les secrets viennent d'un fichier .env
-# NON versionné, placé à côté de ce fichier. Voir .env.example.
+# Déploiement en production, derrière SWAG.
 #
-#   OLIVONE_MASTER_KEY, OLIVONE_BASE_URL, OLIVONE_ADMIN_EMAIL, OLIVONE_ADMIN_PASSWORD
+# 1. Copie .env.example en .env et renseigne les secrets (voir DEPLOY.md).
+# 2. Crée le réseau partagé une fois :  docker network create swag
+#    (et attache aussi ton conteneur SWAG à ce réseau).
+# 3. docker compose up -d --build
 #
+# Le healthcheck est défini dans l'image (Dockerfile).
 services:
   olivone:
     build: .
     image: olivone:latest
     container_name: olivone
     restart: unless-stopped
+    env_file: .env
     environment:
+      # Valeurs de production non secrètes (priorité sur .env).
       OLIVONE_ENV: prod
       OLIVONE_BIND: ":8080"
       OLIVONE_DATA_DIR: /data
       OLIVONE_WEB_DIR: /app/web
-      OLIVONE_BASE_URL: ${OLIVONE_BASE_URL}
-      OLIVONE_MASTER_KEY: ${OLIVONE_MASTER_KEY}
-      OLIVONE_ADMIN_EMAIL: ${OLIVONE_ADMIN_EMAIL}
-      OLIVONE_ADMIN_PASSWORD: ${OLIVONE_ADMIN_PASSWORD}
     volumes:
       - olivone_data:/data
-    # Accès direct pour tester ; à retirer si SWAG proxifie via le réseau interne.
-    ports:
-      - "8080:8080"
-    # Pour passer derrière SWAG, rejoindre son réseau :
-    # networks:
-    #   - swag
-    #   default:
+    networks:
+      - swag
+    # Accès direct (debug) sans passer par SWAG — à laisser commenté en prod :
+    # ports:
+    #   - "8080:8080"
 
 volumes:
   olivone_data:
-# networks:
-#   swag:
-#     external: true
+
+networks:
+  swag:
+    external: true
+    # Nom du réseau Docker partagé avec SWAG (docker network ls pour vérifier).
+    name: swag

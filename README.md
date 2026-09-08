@@ -71,6 +71,11 @@ web/      Frontend Svelte 5
 deploy/   Exemple de configuration SWAG
 ```
 
+## Déploiement
+
+Pour héberger Olivone sur ton serveur derrière SWAG, suis le guide pas à pas :
+**[DEPLOY.md](DEPLOY.md)** (réseau Docker, `.env`, SWAG, sauvegardes, mises à jour).
+
 ## Sécurité
 
 - Les secrets ne sont jamais versionnés (`.env` est ignoré par Git).
@@ -78,10 +83,11 @@ deploy/   Exemple de configuration SWAG
 
 ## Feuille de route
 
-M0 socle · M1 auth/utilisateurs · M2 génération (Mistral+Typst) · M3 envoi ·
-M4 agenda/iCal · M5 IMAP/dossier · M6 relance · M7 finitions/déploiement.
-Intégrations France Travail / LinkedIn : prévues architecturalement, non
-développées.
+✅ M0 socle · M1 auth · M2 génération (Mistral+Typst) · M3 envoi ·
+M4 agenda/iCal · M6 relance · finitions/déploiement.
+⏳ M5 IMAP (détection des réponses) + dossier surveillé.
+Intégrations France Travail / LinkedIn : prévues architecturalement (interface
+`JobSource`), non développées.
 
 ## Licence
 
