@@ -16,7 +16,7 @@ import (
 // Config regroupe les paramètres de démarrage du serveur.
 type Config struct {
 	Env           string // "dev" | "prod"
-	Bind          string // ex. ":8080"
+	Bind          string // ex. ":8791"
 	DataDir       string // dossier des données (base SQLite, fichiers)
 	WebDir        string // dossier du frontend construit ; vide => placeholder embarqué
 	TypstBin      string // chemin du binaire Typst (défaut "typst" via le PATH)
@@ -47,11 +47,11 @@ func parseDur(s string, def time.Duration) time.Duration {
 func Load(version string) (Config, error) {
 	c := Config{
 		Env:           getenv("OLIVONE_ENV", "dev"),
-		Bind:          getenv("OLIVONE_BIND", ":8080"),
+		Bind:          getenv("OLIVONE_BIND", ":8791"),
 		DataDir:       getenv("OLIVONE_DATA_DIR", "./data"),
 		WebDir:        getenv("OLIVONE_WEB_DIR", ""),
 		TypstBin:      getenv("OLIVONE_TYPST_BIN", "typst"),
-		BaseURL:       getenv("OLIVONE_BASE_URL", "http://localhost:8080"),
+		BaseURL:       getenv("OLIVONE_BASE_URL", "http://localhost:8791"),
 		AdminEmail:    getenv("OLIVONE_ADMIN_EMAIL", ""),
 		AdminPassword: getenv("OLIVONE_ADMIN_PASSWORD", ""),
 		Version:       version,

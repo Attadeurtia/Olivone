@@ -29,7 +29,7 @@ partir du jalon M2) · API Mistral · écosystème emersion (IMAP/SMTP).
 docker compose -f docker-compose.dev.yml up --build
 ```
 
-- App : http://localhost:8080
+- App : http://localhost:8791
 - Mailpit (faux SMTP + UI) : http://localhost:8025
 
 ### Option B — natif (itération rapide)
@@ -38,7 +38,7 @@ docker compose -f docker-compose.dev.yml up --build
 # Terminal 1 : backend Go (sert le placeholder si le frontend n'est pas construit)
 make server
 
-# Terminal 2 : frontend Svelte avec proxy /api -> :8080
+# Terminal 2 : frontend Svelte avec proxy /api -> :8791
 cd web && npm install && npm run dev   # http://localhost:5173
 ```
 

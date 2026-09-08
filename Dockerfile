@@ -32,7 +32,7 @@ COPY --from=server /out/olivone /app/olivone
 COPY --from=web /web/dist /app/web
 COPY --from=typst /usr/local/bin/typst /usr/local/bin/typst
 ENV OLIVONE_ENV=prod \
-    OLIVONE_BIND=:8080 \
+    OLIVONE_BIND=:8791 \
     OLIVONE_DATA_DIR=/data \
     OLIVONE_WEB_DIR=/app/web
 # Le volume /data doit appartenir à l'utilisateur non-root, sinon la base
@@ -40,8 +40,8 @@ ENV OLIVONE_ENV=prod \
 # de l'appartenance de ce dossier dans l'image.
 RUN mkdir -p /data && chown olivone:olivone /data
 VOLUME /data
-EXPOSE 8080
+EXPOSE 8791
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://localhost:8080/api/health >/dev/null 2>&1 || exit 1
+  CMD wget -qO- http://localhost:8791/api/health >/dev/null 2>&1 || exit 1
 USER olivone
 ENTRYPOINT ["/app/olivone"]

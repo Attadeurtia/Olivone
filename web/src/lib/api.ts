@@ -1,5 +1,5 @@
 // Petit client HTTP typé vers l'API Go. Les cookies de session sont envoyés
-// automatiquement (même origine ; en dev, Vite proxifie /api vers :8080).
+// automatiquement (même origine ; en dev, Vite proxifie /api vers :8791).
 
 async function req(method: string, url: string, body?: unknown): Promise<any> {
   const opts: RequestInit = { method, headers: {} }

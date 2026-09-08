@@ -63,7 +63,7 @@ cp deploy/swag/olivone.subdomain.conf.sample \
    /chemin/vers/swag/config/nginx/proxy-confs/olivone.subdomain.conf
 ```
 
-La conf pointe vers le conteneur `olivone` sur le port `8080` et autorise les
+La conf pointe vers le conteneur `olivone` sur le port `8791` et autorise les
 uploads jusqu'à 25 Mo (PDF d'offres / CV).
 
 ## 5. Construire et démarrer
@@ -124,14 +124,33 @@ docker compose start olivone
 Restauration : décompresse l'archive dans le volume avec la commande inverse
 (`tar xzf ... -C /data`), conteneur arrêté.
 
-## 10. Mises à jour
+## 10. Mettre à jour (nouvelles fonctionnalités depuis GitHub)
+
+Quand tu pousses de nouvelles fonctionnalités sur GitHub, mets à jour le
+serveur ainsi, dans le dossier `Olivone` :
 
 ```bash
-git pull
-docker compose up -d --build
+# (recommandé) sauvegarde d'abord — voir section 9
+git pull                          # récupère le nouveau code
+docker compose up -d --build      # reconstruit l'image et recrée le conteneur
 ```
 
-Le volume `olivone_data` est conservé (tes données restent).
+- Le volume `olivone_data` est **conservé** : utilisateurs, candidatures,
+  réglages, lettres et PDF restent en place.
+- Les **migrations de base** éventuelles s'appliquent automatiquement au
+  démarrage (ajout de tables/colonnes) — rien à faire.
+- **Interruption** : quelques secondes (l'image se construit d'abord, puis le
+  conteneur est remplacé).
+
+Vérifie ensuite :
+
+```bash
+docker compose ps                 # STATUS "healthy"
+docker compose logs -f olivone
+```
+
+Revenir en arrière : `git checkout <commit-précédent>` puis
+`docker compose up -d --build` (le volume et tes données récentes restent).
 
 ## 11. Dépannage
 
@@ -146,5 +165,5 @@ Le volume `olivone_data` est conservé (tes données restent).
 - [ ] `.env` n'est pas committé (il est ignoré par Git).
 - [ ] `OLIVONE_MASTER_KEY` forte, générée aléatoirement, sauvegardée à part.
 - [ ] Mot de passe admin fort ; comptes créés uniquement pour tes utilisateurs.
-- [ ] Accès uniquement en HTTPS via SWAG (pas de port `8080` publié en prod).
+- [ ] Accès uniquement en HTTPS via SWAG (pas de port `8791` publié en prod).
 - [ ] Sauvegardes régulières du volume `olivone_data`.

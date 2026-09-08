@@ -5,13 +5,13 @@ services:
   app:
     build: .
     ports:
-      - "8080:8080"
+      - "8791:8791"
     environment:
       OLIVONE_ENV: dev
-      OLIVONE_BIND: ":8080"
+      OLIVONE_BIND: ":8791"
       OLIVONE_DATA_DIR: /data
       OLIVONE_WEB_DIR: /app/web
-      OLIVONE_BASE_URL: "http://localhost:8080"
+      OLIVONE_BASE_URL: "http://localhost:8791"
       # Clé de dev UNIQUEMENT (jamais en production). 32 octets en base64.
       OLIVONE_MASTER_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
       OLIVONE_ADMIN_EMAIL: "attadeurtia@vivaldi.net"
