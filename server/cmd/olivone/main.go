@@ -16,6 +16,7 @@ import (
 	"github.com/attadeurtia/olivone/internal/config"
 	"github.com/attadeurtia/olivone/internal/httpapi"
 	"github.com/attadeurtia/olivone/internal/prompt"
+	"github.com/attadeurtia/olivone/internal/scheduling"
 	"github.com/attadeurtia/olivone/internal/store"
 )
 
@@ -68,6 +69,9 @@ func main() {
 			stop()
 		}
 	}()
+
+	// Planificateur de relance (no-op tant qu'aucun utilisateur ne l'a activé).
+	go scheduling.New(handler.Apps(), cfg.FollowupCheckInterval).Start(ctx)
 
 	<-ctx.Done()
 	slog.Info("arrêt demandé, fermeture en cours…")

@@ -494,6 +494,131 @@ func buildEmailBody(jobTitle, company, senderName string, hasCV bool) string {
 	return b.String()
 }
 
+// --- Relance ----------------------------------------------------------------
+
+// Due identifie une candidature dont la relance est due.
+type Due struct {
+	UserID int64
+	AppID  int64
+}
+
+// DueFollowups renvoie les candidatures dont la relance est due, uniquement
+// pour les utilisateurs ayant activé la relance automatique.
+func (s *Service) DueFollowups(now time.Time) ([]Due, error) {
+	rows, err := s.DB.Query(`
+		SELECT a.user_id, a.id
+		FROM applications a
+		JOIN user_settings us ON us.user_id = a.user_id
+		WHERE us.followup_enabled = 1
+		  AND a.next_followup_at IS NOT NULL
+		  AND a.next_followup_at <> ''
+		  AND a.next_followup_at <= ?
+		  AND a.status IN ('envoyée','relancée','en_attente')`,
+		now.UTC().Format(time.RFC3339),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var due []Due
+	for rows.Next() {
+		var d Due
+		if err := rows.Scan(&d.UserID, &d.AppID); err != nil {
+			return nil, err
+		}
+		due = append(due, d)
+	}
+	return due, rows.Err()
+}
+
+// SendFollowup envoie une relance (rappel + lettre en pièce jointe), enregistre
+// le message, passe le statut à « relancée » et reprogramme la prochaine relance.
+func (s *Service) SendFollowup(userID, appID int64) error {
+	app, _, err := s.getRaw(userID, appID)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(app.RecipientEmail) == "" {
+		return errors.New("aucun destinataire pour la relance")
+	}
+	settings, err := s.Users.GetSettings(userID)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(settings.SMTPHost) == "" {
+		return ErrNoSMTP
+	}
+	smtpPw, _ := s.Users.DecryptSecret(settings.SMTPPasswordEnc)
+	user, _ := s.Users.GetByID(userID)
+
+	var attachments []string
+	if p, err := s.LetterPDFPath(userID, appID); err == nil && p != "" {
+		attachments = append(attachments, p)
+	}
+
+	subject := "Relance — Candidature"
+	if app.JobTitle != "" {
+		subject = "Relance — Candidature : " + app.JobTitle
+	}
+	from := firstNonEmpty(settings.SMTPFrom, settings.SMTPUsername)
+	sentDate := ""
+	if app.SentAt != nil && len(*app.SentAt) >= 10 {
+		sentDate = (*app.SentAt)[:10]
+	}
+
+	msgID, err := email.Send(email.Config{
+		Host:     settings.SMTPHost,
+		Port:     settings.SMTPPort,
+		Username: settings.SMTPUsername,
+		Password: smtpPw,
+		From:     from,
+	}, email.Message{
+		To:          app.RecipientEmail,
+		Subject:     subject,
+		Body:        buildFollowupBody(app.JobTitle, app.Company, user.DisplayName, sentDate),
+		Attachments: attachments,
+	})
+	if err != nil {
+		return fmt.Errorf("envoi de la relance: %w", err)
+	}
+
+	_, _ = s.DB.Exec(
+		`INSERT INTO messages(application_id, direction, message_id, subject, from_addr, to_addr)
+		 VALUES(?, 'outgoing', ?, ?, ?, ?)`,
+		appID, msgID, subject, from, app.RecipientEmail,
+	)
+
+	days := settings.FollowupIntervalDays
+	if days <= 0 {
+		days = 14
+	}
+	next := time.Now().AddDate(0, 0, days).UTC().Format(time.RFC3339)
+	_, err = s.DB.Exec(
+		`UPDATE applications SET status='relancée', last_followup_at=datetime('now'), next_followup_at=? WHERE id=? AND user_id=?`,
+		next, appID, userID,
+	)
+	return err
+}
+
+func buildFollowupBody(jobTitle, company, senderName, sentDate string) string {
+	var b strings.Builder
+	b.WriteString("Madame, Monsieur,\n\n")
+	b.WriteString("Je me permets de revenir vers vous au sujet de ma candidature")
+	if jobTitle != "" {
+		b.WriteString(" au poste de " + jobTitle)
+		if company != "" {
+			b.WriteString(" au sein de " + company)
+		}
+	}
+	if sentDate != "" {
+		b.WriteString(", transmise le " + sentDate)
+	}
+	b.WriteString(".\n\nToujours très intéressé, je me tiens à votre disposition pour tout complément d'information. Vous trouverez à nouveau ci-joint ma lettre de motivation.\n\nCordialement,\n")
+	b.WriteString(senderName)
+	return b.String()
+}
+
 // --- helpers ----------------------------------------------------------------
 
 const selectCols = `SELECT id, job_title, company, recipient_email, source_type, status, notes, external, created_at, sent_at, next_followup_at, letter_pdf_path, offer_pdf_path FROM applications`

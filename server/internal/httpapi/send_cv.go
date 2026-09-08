@@ -21,6 +21,25 @@ func (s *Server) handleSendApplication(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, app)
 }
 
+func (s *Server) handleFollowup(w http.ResponseWriter, r *http.Request) {
+	u, _ := userFromContext(r.Context())
+	id, ok := appID(r)
+	if !ok {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "id invalide"})
+		return
+	}
+	if err := s.apps.SendFollowup(u.ID, id); err != nil {
+		writeAppErr(w, err)
+		return
+	}
+	app, err := s.apps.Get(u.ID, id)
+	if err != nil {
+		writeAppErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, app)
+}
+
 func (s *Server) handleUploadCV(w http.ResponseWriter, r *http.Request) {
 	u, _ := userFromContext(r.Context())
 	if err := r.ParseMultipartForm(maxUploadBytes); err != nil {

@@ -166,6 +166,21 @@
     }
   }
 
+  async function followup() {
+    if (!selected) return
+    if (!confirm(`Envoyer une relance à ${selected.recipient_email} ?`)) return
+    sending = true
+    error = ''
+    try {
+      selected = await api.post(`/api/applications/${selected.id}/followup`)
+      await loadApps()
+    } catch (e) {
+      error = msg(e)
+    } finally {
+      sending = false
+    }
+  }
+
   async function remove(app: App) {
     if (!confirm(`Supprimer la candidature « ${app.job_title || app.company} » ? Action irréversible.`)) return
     try {
@@ -226,6 +241,7 @@
           <button class="btn btn-ghost" type="button" onclick={() => uploadInput.click()}>Uploader une version corrigée</button>
           <input bind:this={uploadInput} type="file" accept=".md,text/markdown" hidden onchange={onUploadCorrected} />
           <button class="btn btn-ghost" type="button" onclick={regenerate} disabled={creating}>Régénérer</button>
+          <button class="btn btn-ghost" type="button" onclick={followup} disabled={sending || !selected.has_letter}>Relancer</button>
           <button class="btn" type="button" onclick={send} disabled={sending || !selected.has_letter}>
             {sending ? 'Envoi…' : selected.status === 'envoyée' ? 'Renvoyer' : 'Envoyer'}
           </button>

@@ -50,6 +50,11 @@ func (s *Server) EnsureBootstrap() error {
 	return s.users.EnsureAdmin(s.cfg.AdminEmail, s.cfg.AdminPassword)
 }
 
+// Apps expose le service candidatures (utilisé par le planificateur de relance).
+func (s *Server) Apps() *applications.Service {
+	return s.apps
+}
+
 func (s *Server) routes() {
 	mux := http.NewServeMux()
 
@@ -85,6 +90,7 @@ func (s *Server) routes() {
 	mux.Handle("PATCH /api/applications/{id}", s.requireAuth(http.HandlerFunc(s.handlePatchApplication)))
 	mux.Handle("DELETE /api/applications/{id}", s.requireAuth(http.HandlerFunc(s.handleDeleteApplication)))
 	mux.Handle("POST /api/applications/{id}/send", s.requireAuth(http.HandlerFunc(s.handleSendApplication)))
+	mux.Handle("POST /api/applications/{id}/followup", s.requireAuth(http.HandlerFunc(s.handleFollowup)))
 
 	// CV (utilisateur courant).
 	mux.Handle("POST /api/cv", s.requireAuth(http.HandlerFunc(s.handleUploadCV)))

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 )
 
 // Config regroupe les paramètres de démarrage du serveur.
@@ -24,11 +25,20 @@ type Config struct {
 	AdminEmail    string // compte admin créé au premier démarrage
 	AdminPassword string // mot de passe du compte admin de bootstrap
 	Version       string
+
+	FollowupCheckInterval time.Duration // fréquence de vérification des relances
 }
 
 func getenv(key, def string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
+	}
+	return def
+}
+
+func parseDur(s string, def time.Duration) time.Duration {
+	if d, err := time.ParseDuration(s); err == nil && d > 0 {
+		return d
 	}
 	return def
 }
@@ -45,6 +55,8 @@ func Load(version string) (Config, error) {
 		AdminEmail:    getenv("OLIVONE_ADMIN_EMAIL", ""),
 		AdminPassword: getenv("OLIVONE_ADMIN_PASSWORD", ""),
 		Version:       version,
+
+		FollowupCheckInterval: parseDur(getenv("OLIVONE_FOLLOWUP_CHECK_INTERVAL", "1h"), time.Hour),
 	}
 
 	key, err := loadMasterKey(c.Env)
