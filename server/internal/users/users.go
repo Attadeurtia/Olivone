@@ -141,6 +141,25 @@ func (s *Service) GetDefaultTemplate(userID int64) (string, error) {
 	return content, err
 }
 
+// UpdateDefaultTemplate met à jour le contenu du template de prompt par défaut
+// de l'utilisateur (en crée un s'il n'existe pas).
+func (s *Service) UpdateDefaultTemplate(userID int64, content string) error {
+	res, err := s.DB.Exec(
+		`UPDATE templates SET content_md=?, updated_at=datetime('now') WHERE user_id=? AND is_default=1`,
+		content, userID,
+	)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		_, err = s.DB.Exec(
+			`INSERT INTO templates(user_id, name, content_md, is_default) VALUES(?, 'default', ?, 1)`,
+			userID, content,
+		)
+	}
+	return err
+}
+
 // List renvoie tous les utilisateurs (usage admin).
 func (s *Service) List() ([]User, error) {
 	rows, err := s.DB.Query(`SELECT id, email, display_name, is_admin, created_at FROM users ORDER BY id`)

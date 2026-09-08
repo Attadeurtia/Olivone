@@ -64,6 +64,11 @@ func (s *Server) routes() {
 	mux.Handle("GET /api/settings", s.requireAuth(http.HandlerFunc(s.handleGetSettings)))
 	mux.Handle("PUT /api/settings", s.requireAuth(http.HandlerFunc(s.handleUpdateSettings)))
 
+	// Template de prompt personnel + contexte applicatif global (lecture seule).
+	mux.Handle("GET /api/template", s.requireAuth(http.HandlerFunc(s.handleGetTemplate)))
+	mux.Handle("PUT /api/template", s.requireAuth(http.HandlerFunc(s.handleUpdateTemplate)))
+	mux.Handle("GET /api/app-prompt", s.requireAuth(http.HandlerFunc(s.handleGetAppPrompt)))
+
 	// Gestion des comptes (admin).
 	mux.Handle("GET /api/users", s.requireAdmin(http.HandlerFunc(s.handleListUsers)))
 	mux.Handle("POST /api/users", s.requireAdmin(http.HandlerFunc(s.handleCreateUser)))

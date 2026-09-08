@@ -4,6 +4,7 @@
   import Settings from './lib/Settings.svelte'
   import Users from './lib/Users.svelte'
   import Candidature from './lib/Candidature.svelte'
+  import Prompt from './lib/Prompt.svelte'
 
   type Theme = 'auto' | 'light' | 'dark'
   type View = 'candidature' | 'agenda' | 'prompt' | 'reglages' | 'utilisateurs'
@@ -52,7 +53,6 @@
 
   const futureViews: { id: View; label: string; milestone: string }[] = [
     { id: 'agenda', label: 'Agenda', milestone: 'M4' },
-    { id: 'prompt', label: 'Prompt', milestone: 'M4' },
   ]
 </script>
 
@@ -66,6 +66,7 @@
       <div class="brand">Olivone</div>
       <nav>
         <button class="tab" class:active={view === 'candidature'} onclick={() => (view = 'candidature')}>Candidature</button>
+        <button class="tab" class:active={view === 'prompt'} onclick={() => (view = 'prompt')}>Prompt</button>
         {#each futureViews as v}
           <button
             class="tab"
@@ -99,6 +100,8 @@
     <main>
       {#if view === 'candidature'}
         <Candidature />
+      {:else if view === 'prompt'}
+        <Prompt />
       {:else if view === 'reglages'}
         <Settings />
       {:else if view === 'utilisateurs' && user.is_admin}
