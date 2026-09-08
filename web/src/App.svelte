@@ -59,7 +59,7 @@
 {:else if !user}
   <Login onSuccess={(u) => (user = u)} {theme} {setTheme} />
 {:else}
-  <div class="shell" class:wide={view === 'candidature' || view === 'agenda'}>
+  <div class="shell">
     <header>
       <div class="brand">Olivone</div>
       <nav>
@@ -77,26 +77,18 @@
         {/if}
       </nav>
       <div class="right">
-        <select
-          aria-label="Thème"
-          value={theme}
-          onchange={(e) => setTheme((e.currentTarget as HTMLSelectElement).value as Theme)}>
-          <option value="auto">Auto</option>
-          <option value="light">Jour</option>
-          <option value="dark">Nuit</option>
-        </select>
         <span class="who muted">{user.email}</span>
         <button class="btn btn-ghost" onclick={logout}>Déconnexion</button>
       </div>
     </header>
 
-    <main>
+    <main class:narrow={view !== 'candidature' && view !== 'agenda'}>
       {#if view === 'candidature'}
         <Candidature />
       {:else if view === 'prompt'}
         <Prompt />
       {:else if view === 'reglages'}
-        <Settings />
+        <Settings {theme} {setTheme} />
       {:else if view === 'agenda'}
         <Agenda />
       {:else if view === 'utilisateurs' && user.is_admin}
@@ -113,12 +105,13 @@
     min-height: 100vh;
   }
   .shell {
-    max-width: 860px;
+    max-width: min(1600px, 97vw);
     margin: 0 auto;
     padding: 20px;
   }
-  .shell.wide {
-    max-width: min(1600px, 97vw);
+  main.narrow {
+    max-width: 860px;
+    margin: 0 auto;
   }
   header {
     display: flex;

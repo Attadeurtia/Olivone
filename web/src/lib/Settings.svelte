@@ -1,6 +1,9 @@
 <script lang="ts">
   import { api } from './api'
 
+  type Theme = 'auto' | 'light' | 'dark'
+  let { theme, setTheme }: { theme: Theme; setTheme: (t: Theme) => void } = $props()
+
   let loaded = $state(false)
   let saving = $state(false)
   let error = $state('')
@@ -145,6 +148,18 @@
 {:else}
   <form onsubmit={save}>
     {#if error}<p class="err">{error}</p>{/if}
+
+    <section class="card">
+      <h3>Apparence</h3>
+      <div class="field">
+        <label>Thème</label>
+        <div class="themes">
+          <button type="button" class:active={theme === 'auto'} onclick={() => setTheme('auto')}>Auto</button>
+          <button type="button" class:active={theme === 'light'} onclick={() => setTheme('light')}>Jour</button>
+          <button type="button" class:active={theme === 'dark'} onclick={() => setTheme('dark')}>Nuit</button>
+        </div>
+      </div>
+    </section>
 
     <section class="card">
       <h3>Profil & candidature</h3>
@@ -292,6 +307,25 @@
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+  }
+  .themes {
+    display: flex;
+    gap: 6px;
+  }
+  .themes button {
+    padding: 7px 16px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: transparent;
+    color: var(--fg);
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+  }
+  .themes button.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
   }
   .cvrow .btn {
     text-decoration: none;
