@@ -33,5 +33,6 @@ volumes:
 networks:
   swag:
     external: true
-    # Nom du réseau Docker partagé avec SWAG (docker network ls pour vérifier).
-    name: swag
+    # Nom du réseau Docker partagé avec SWAG. Définis SWAG_NETWORK dans .env
+    # (ex. swag-net) ; par défaut « swag ».
+    name: ${SWAG_NETWORK:-swag}

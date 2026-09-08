@@ -32,14 +32,17 @@ docker network create swag
 docker network connect swag NOM_DU_CONTENEUR_SWAG   # attache SWAG au réseau
 ```
 
-### Option B — réutiliser le réseau existant de SWAG
+### Option B — réutiliser le réseau existant de SWAG (recommandé)
 
 ```bash
 docker inspect NOM_DU_CONTENEUR_SWAG -f '{{json .NetworkSettings.Networks}}'
 ```
 
-Puis, dans `docker-compose.yml`, remplace `name: swag` par ce réseau (rien à
-créer ni connecter).
+Puis mets ce nom de réseau dans `.env` (rien à créer ni connecter) :
+
+```bash
+SWAG_NETWORK=swag-net    # remplace par le réseau affiché ci-dessus
+```
 
 > Sans cette étape, `docker compose up` échoue avec
 > « network swag declared as external, but could not be found ».
