@@ -18,19 +18,31 @@ cd Olivone
 
 ## 2. Réseau Docker partagé avec SWAG
 
-Olivone et SWAG doivent être sur le même réseau Docker pour que SWAG puisse
-joindre le conteneur `olivone`.
+Olivone et SWAG doivent partager un réseau Docker pour que SWAG joigne le
+conteneur `olivone` par son nom. Trouve d'abord le nom de ton conteneur SWAG :
+
+```bash
+docker ps --format '{{.Names}}  {{.Image}}' | grep -i swag
+```
+
+### Option A — créer un réseau dédié `swag` (attendu par le compose)
 
 ```bash
 docker network create swag
+docker network connect swag NOM_DU_CONTENEUR_SWAG   # attache SWAG au réseau
 ```
 
-Attache aussi **SWAG** à ce réseau (dans le `docker-compose.yml` de SWAG,
-ajoute `swag` sous `networks:` du service SWAG, avec en bas
-`networks: { swag: { external: true, name: swag } }`), puis recrée SWAG.
+### Option B — réutiliser le réseau existant de SWAG
 
-> Si ton SWAG a déjà un réseau, tu peux réutiliser son nom : adapte
-> `networks.swag.name` dans `docker-compose.yml` d'Olivone.
+```bash
+docker inspect NOM_DU_CONTENEUR_SWAG -f '{{json .NetworkSettings.Networks}}'
+```
+
+Puis, dans `docker-compose.yml`, remplace `name: swag` par ce réseau (rien à
+créer ni connecter).
+
+> Sans cette étape, `docker compose up` échoue avec
+> « network swag declared as external, but could not be found ».
 
 ## 3. Configurer les secrets (`.env`)
 
