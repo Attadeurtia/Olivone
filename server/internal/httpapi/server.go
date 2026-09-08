@@ -70,6 +70,7 @@ func (s *Server) routes() {
 
 	// Candidatures (utilisateur courant).
 	mux.Handle("POST /api/applications", s.requireAuth(http.HandlerFunc(s.handleCreateApplication)))
+	mux.Handle("POST /api/extract", s.requireAuth(http.HandlerFunc(s.handleExtract)))
 	mux.Handle("GET /api/applications", s.requireAuth(http.HandlerFunc(s.handleListApplications)))
 	mux.Handle("GET /api/applications/{id}", s.requireAuth(http.HandlerFunc(s.handleGetApplication)))
 	mux.Handle("GET /api/applications/{id}/letter.md", s.requireAuth(http.HandlerFunc(s.handleGetLetterMD)))
@@ -78,6 +79,12 @@ func (s *Server) routes() {
 	mux.Handle("POST /api/applications/{id}/regenerate", s.requireAuth(http.HandlerFunc(s.handleRegenerate)))
 	mux.Handle("PATCH /api/applications/{id}", s.requireAuth(http.HandlerFunc(s.handlePatchApplication)))
 	mux.Handle("DELETE /api/applications/{id}", s.requireAuth(http.HandlerFunc(s.handleDeleteApplication)))
+	mux.Handle("POST /api/applications/{id}/send", s.requireAuth(http.HandlerFunc(s.handleSendApplication)))
+
+	// CV (utilisateur courant).
+	mux.Handle("POST /api/cv", s.requireAuth(http.HandlerFunc(s.handleUploadCV)))
+	mux.Handle("GET /api/cv", s.requireAuth(http.HandlerFunc(s.handleGetCV)))
+	mux.Handle("DELETE /api/cv", s.requireAuth(http.HandlerFunc(s.handleDeleteCV)))
 
 	// Route API inconnue -> 404 JSON.
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) {

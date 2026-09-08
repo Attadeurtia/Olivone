@@ -61,7 +61,7 @@
 {:else if !user}
   <Login onSuccess={(u) => (user = u)} {theme} {setTheme} />
 {:else}
-  <div class="shell">
+  <div class="shell" class:wide={view === 'candidature'}>
     <header>
       <div class="brand">Olivone</div>
       <nav>
@@ -124,6 +124,9 @@
     max-width: 860px;
     margin: 0 auto;
     padding: 20px;
+  }
+  .shell.wide {
+    max-width: min(1600px, 97vw);
   }
   header {
     display: flex;

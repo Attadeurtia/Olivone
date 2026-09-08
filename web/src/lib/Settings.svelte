@@ -31,6 +31,11 @@
   let smtpPassword = $state('')
   let imapPassword = $state('')
 
+  // CV (PDF joint aux e-mails)
+  let cvSet = $state(false)
+  let cvBusy = $state(false)
+  let cvInput: HTMLInputElement
+
   async function load() {
     try {
       const s = await api.get('/api/settings')
@@ -50,6 +55,7 @@
       mistralKeySet = !!s.mistral_key_set
       smtpPwSet = !!s.smtp_password_set
       imapPwSet = !!s.imap_password_set
+      cvSet = !!s.cv_set
       loaded = true
     } catch (err) {
       error = err instanceof Error ? err.message : 'Chargement impossible'
@@ -96,6 +102,41 @@
     }
   }
 
+  async function uploadCV(ev: Event) {
+    const input = ev.currentTarget as HTMLInputElement
+    const f = input.files?.[0]
+    if (!f) return
+    cvBusy = true
+    error = ''
+    okMsg = ''
+    try {
+      const fd = new FormData()
+      fd.set('cv', f)
+      const r = await api.postForm('/api/cv', fd)
+      cvSet = !!r.cv_set
+      okMsg = 'CV enregistré.'
+    } catch (e) {
+      error = e instanceof Error ? e.message : "Échec de l'envoi du CV"
+    } finally {
+      cvBusy = false
+      input.value = ''
+    }
+  }
+
+  async function removeCV() {
+    cvBusy = true
+    error = ''
+    try {
+      await api.del('/api/cv')
+      cvSet = false
+      okMsg = 'CV retiré.'
+    } catch (e) {
+      error = e instanceof Error ? e.message : 'Échec'
+    } finally {
+      cvBusy = false
+    }
+  }
+
   const hint = (set: boolean) => (set ? 'défini — laisser vide pour conserver' : 'non défini')
 </script>
 
@@ -114,6 +155,20 @@
       <div class="field">
         <label for="prof">Profil / parcours (Markdown)</label>
         <textarea id="prof" bind:value={profileMd} placeholder="# Mon parcours&#10;- ..."></textarea>
+      </div>
+      <div class="field">
+        <label>CV (PDF joint aux e-mails)</label>
+        <div class="cvrow">
+          <span class="muted">{cvSet ? '✓ CV enregistré' : 'Aucun CV'}</span>
+          <button type="button" class="btn btn-ghost" onclick={() => cvInput.click()} disabled={cvBusy}>
+            {cvSet ? 'Remplacer' : 'Ajouter'}
+          </button>
+          {#if cvSet}
+            <a class="btn btn-ghost" href="/api/cv" target="_blank" rel="noopener">Voir</a>
+            <button type="button" class="btn btn-ghost" onclick={removeCV} disabled={cvBusy}>Retirer</button>
+          {/if}
+          <input bind:this={cvInput} type="file" accept="application/pdf" hidden onchange={uploadCV} />
+        </div>
       </div>
     </section>
 
@@ -231,6 +286,15 @@
   }
   .short {
     max-width: 220px;
+  }
+  .cvrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .cvrow .btn {
+    text-decoration: none;
   }
   .actions {
     display: flex;

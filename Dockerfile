@@ -35,6 +35,10 @@ ENV OLIVONE_ENV=prod \
     OLIVONE_BIND=:8080 \
     OLIVONE_DATA_DIR=/data \
     OLIVONE_WEB_DIR=/app/web
+# Le volume /data doit appartenir à l'utilisateur non-root, sinon la base
+# SQLite ne peut pas être créée (SQLITE_CANTOPEN). Un volume nommé vide hérite
+# de l'appartenance de ce dossier dans l'image.
+RUN mkdir -p /data && chown olivone:olivone /data
 VOLUME /data
 EXPOSE 8080
 USER olivone

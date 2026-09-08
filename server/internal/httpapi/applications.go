@@ -24,7 +24,7 @@ func writeAppErr(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, applications.ErrNotFound):
 		writeJSON(w, http.StatusNotFound, map[string]any{"error": "candidature introuvable"})
-	case errors.Is(err, applications.ErrNoMistralKey):
+	case errors.Is(err, applications.ErrNoMistralKey), errors.Is(err, applications.ErrNoSMTP):
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": err.Error()})
 	default:
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})

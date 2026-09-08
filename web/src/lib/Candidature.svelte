@@ -32,6 +32,8 @@
   let offerText = $state('')
   let offerFile = $state<File | null>(null)
   let creating = $state(false)
+  let sending = $state(false)
+  let analyzing = $state(false)
   let error = $state('')
   let uploadInput: HTMLInputElement
 
@@ -85,6 +87,30 @@
     }
   }
 
+  async function analyze() {
+    error = ''
+    if (mode === 'texte' && !offerText.trim()) return
+    if (mode === 'pdf' && !offerFile) return
+    analyzing = true
+    try {
+      let f: { job_title?: string; company?: string; recipient_email?: string }
+      if (mode === 'pdf' && offerFile) {
+        const fd = new FormData()
+        fd.set('offer_pdf', offerFile)
+        f = await api.postForm('/api/extract', fd)
+      } else {
+        f = await api.post('/api/extract', { offer_text: offerText })
+      }
+      if (f.job_title) jobTitle = f.job_title
+      if (f.company) company = f.company
+      if (f.recipient_email) recipient = f.recipient_email
+    } catch (e) {
+      error = msg(e)
+    } finally {
+      analyzing = false
+    }
+  }
+
   async function regenerate() {
     if (!selected) return
     creating = true
@@ -125,6 +151,21 @@
     }
   }
 
+  async function send() {
+    if (!selected) return
+    if (!confirm(`Envoyer la lettre à ${selected.recipient_email} ? Cette action est définitive.`)) return
+    sending = true
+    error = ''
+    try {
+      selected = await api.post(`/api/applications/${selected.id}/send`)
+      await loadApps()
+    } catch (e) {
+      error = msg(e)
+    } finally {
+      sending = false
+    }
+  }
+
   async function remove(app: App) {
     if (!confirm(`Supprimer la candidature « ${app.job_title || app.company} » ? Action irréversible.`)) return
     try {
@@ -155,6 +196,14 @@
             accept="application/pdf"
             onchange={(e) => (offerFile = (e.currentTarget as HTMLInputElement).files?.[0] ?? null)} />
         {/if}
+
+        <button
+          type="button"
+          class="btn btn-ghost"
+          onclick={analyze}
+          disabled={analyzing || (mode === 'texte' ? !offerText.trim() : !offerFile)}>
+          {analyzing ? 'Analyse…' : '✨ Analyser l’offre (pré-remplir)'}
+        </button>
 
         <div class="row">
           <input bind:value={jobTitle} placeholder="Intitulé du poste" />
@@ -222,7 +271,9 @@
           <button class="btn btn-ghost" type="button" onclick={() => uploadInput.click()}>Uploader une version corrigée</button>
           <input bind:this={uploadInput} type="file" accept=".md,text/markdown" hidden onchange={onUploadCorrected} />
           <button class="btn btn-ghost" type="button" onclick={regenerate} disabled={creating}>Régénérer</button>
-          <button class="btn" type="button" disabled title="Envoi e-mail : jalon M3">Envoyer (M3)</button>
+          <button class="btn" type="button" onclick={send} disabled={sending || !selected.has_letter}>
+            {sending ? 'Envoi…' : selected.status === 'envoyée' ? 'Renvoyer' : 'Envoyer'}
+          </button>
         </div>
       </div>
     {/if}
@@ -232,7 +283,7 @@
 <style>
   .cand {
     display: grid;
-    grid-template-columns: 340px 1fr;
+    grid-template-columns: 300px 1fr;
     gap: 16px;
     align-items: start;
   }
@@ -339,7 +390,8 @@
   }
   .pdf {
     width: 100%;
-    height: 70vh;
+    height: 85vh;
+    min-height: 620px;
     border: 1px solid var(--border);
     border-radius: 8px;
     background: #fff;

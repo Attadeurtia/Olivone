@@ -13,7 +13,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/attadeurtia/olivone/internal/email"
 	"github.com/attadeurtia/olivone/internal/generation"
 	"github.com/attadeurtia/olivone/internal/pdftext"
 	"github.com/attadeurtia/olivone/internal/prompt"
@@ -26,6 +28,9 @@ var ErrNoMistralKey = errors.New("clé API Mistral non configurée dans les rég
 
 // ErrNotFound : candidature absente (ou n'appartenant pas à l'utilisateur).
 var ErrNotFound = errors.New("candidature introuvable")
+
+// ErrNoSMTP : configuration SMTP absente.
+var ErrNoSMTP = errors.New("serveur SMTP non configuré dans les réglages")
 
 // Application est la vue renvoyée au client (sans chemins de fichiers bruts).
 type Application struct {
@@ -325,6 +330,135 @@ func (s *Service) Delete(userID, appID int64) error {
 		_ = os.Remove(offerPDF)
 	}
 	return nil
+}
+
+// --- CV (par utilisateur) ---------------------------------------------------
+
+// CVPath renvoie le chemin du CV de l'utilisateur.
+func (s *Service) CVPath(userID int64) string {
+	return filepath.Join(s.userDir(userID), "cv.pdf")
+}
+
+// HasCV indique si l'utilisateur a un CV enregistré.
+func (s *Service) HasCV(userID int64) bool {
+	_, err := os.Stat(s.CVPath(userID))
+	return err == nil
+}
+
+// SaveCV enregistre le CV (déplace srcPath vers l'emplacement définitif).
+func (s *Service) SaveCV(userID int64, srcPath string) error {
+	if err := os.MkdirAll(s.userDir(userID), 0o750); err != nil {
+		return err
+	}
+	return moveFile(srcPath, s.CVPath(userID))
+}
+
+// DeleteCV supprime le CV.
+func (s *Service) DeleteCV(userID int64) error {
+	err := os.Remove(s.CVPath(userID))
+	if os.IsNotExist(err) {
+		return nil
+	}
+	return err
+}
+
+// --- Envoi ------------------------------------------------------------------
+
+// Send envoie la lettre par e-mail (lettre PDF + CV en pièces jointes),
+// enregistre le message sortant, passe le statut à « envoyée » et calcule la
+// prochaine relance si celle-ci est activée.
+func (s *Service) Send(userID, appID int64, senderName string) (Application, error) {
+	app, err := s.Get(userID, appID)
+	if err != nil {
+		return Application{}, err
+	}
+	if !app.HasLetter {
+		return Application{}, errors.New("aucune lettre à envoyer pour cette candidature")
+	}
+
+	settings, err := s.Users.GetSettings(userID)
+	if err != nil {
+		return Application{}, err
+	}
+	if strings.TrimSpace(settings.SMTPHost) == "" {
+		return Application{}, ErrNoSMTP
+	}
+	smtpPw, _ := s.Users.DecryptSecret(settings.SMTPPasswordEnc)
+
+	pdfPath, err := s.LetterPDFPath(userID, appID)
+	if err != nil {
+		return Application{}, err
+	}
+	attachments := []string{pdfPath}
+	hasCV := s.HasCV(userID)
+	if hasCV {
+		attachments = append(attachments, s.CVPath(userID))
+	}
+
+	subject := "Candidature"
+	if app.JobTitle != "" {
+		subject = "Candidature — " + app.JobTitle
+	}
+	from := firstNonEmpty(settings.SMTPFrom, settings.SMTPUsername)
+
+	msgID, err := email.Send(email.Config{
+		Host:     settings.SMTPHost,
+		Port:     settings.SMTPPort,
+		Username: settings.SMTPUsername,
+		Password: smtpPw,
+		From:     from,
+	}, email.Message{
+		To:          app.RecipientEmail,
+		Subject:     subject,
+		Body:        buildEmailBody(app.JobTitle, app.Company, senderName, hasCV),
+		Attachments: attachments,
+	})
+	if err != nil {
+		return Application{}, fmt.Errorf("envoi e-mail: %w", err)
+	}
+
+	_, _ = s.DB.Exec(
+		`INSERT INTO messages(application_id, direction, message_id, subject, from_addr, to_addr)
+		 VALUES(?, 'outgoing', ?, ?, ?, ?)`,
+		appID, msgID, subject, from, app.RecipientEmail,
+	)
+
+	var nextFollowup sql.NullString
+	if settings.FollowupEnabled {
+		days := settings.FollowupIntervalDays
+		if days <= 0 {
+			days = 14
+		}
+		nextFollowup = sql.NullString{
+			String: time.Now().AddDate(0, 0, days).UTC().Format(time.RFC3339),
+			Valid:  true,
+		}
+	}
+	if _, err := s.DB.Exec(
+		`UPDATE applications SET status='envoyée', sent_at=datetime('now'), next_followup_at=? WHERE id=? AND user_id=?`,
+		nextFollowup, appID, userID,
+	); err != nil {
+		return Application{}, err
+	}
+	return s.Get(userID, appID)
+}
+
+func buildEmailBody(jobTitle, company, senderName string, hasCV bool) string {
+	var b strings.Builder
+	b.WriteString("Madame, Monsieur,\n\n")
+	b.WriteString("Veuillez trouver ci-joint ma lettre de motivation")
+	if hasCV {
+		b.WriteString(" ainsi que mon CV")
+	}
+	if jobTitle != "" {
+		b.WriteString(" pour le poste de " + jobTitle)
+		if company != "" {
+			b.WriteString(" au sein de " + company)
+		}
+	}
+	b.WriteString(".\n\nJe me tiens à votre disposition pour un entretien.\n\nCordialement,\n")
+	b.WriteString(senderName)
+	return b.String()
 }
 
 // --- helpers ----------------------------------------------------------------

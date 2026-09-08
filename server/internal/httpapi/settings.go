@@ -28,9 +28,10 @@ type settingsView struct {
 	ThemePref            string `json:"theme_pref"`
 	ProfileMD            string `json:"profile_md"`
 	Signature            string `json:"signature"`
+	CVSet                bool   `json:"cv_set"`
 }
 
-func toSettingsView(st users.Settings) settingsView {
+func toSettingsView(st users.Settings, cvSet bool) settingsView {
 	return settingsView{
 		DefaultRecipient:     st.DefaultRecipient,
 		MistralModel:         st.MistralModel,
@@ -50,6 +51,7 @@ func toSettingsView(st users.Settings) settingsView {
 		ThemePref:            st.ThemePref,
 		ProfileMD:            st.ProfileMD,
 		Signature:            st.Signature,
+		CVSet:                cvSet,
 	}
 }
 
@@ -60,7 +62,7 @@ func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "erreur interne"})
 		return
 	}
-	writeJSON(w, http.StatusOK, toSettingsView(st))
+	writeJSON(w, http.StatusOK, toSettingsView(st, s.apps.HasCV(u.ID)))
 }
 
 func (s *Server) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
@@ -79,5 +81,5 @@ func (s *Server) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "erreur interne"})
 		return
 	}
-	writeJSON(w, http.StatusOK, toSettingsView(st))
+	writeJSON(w, http.StatusOK, toSettingsView(st, s.apps.HasCV(u.ID)))
 }
