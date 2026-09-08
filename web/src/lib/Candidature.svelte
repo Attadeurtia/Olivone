@@ -218,28 +218,23 @@
       </form>
     </div>
 
-    <div class="card">
-      <h3>Mes candidatures</h3>
-      {#if apps.length === 0}
-        <p class="muted">Aucune candidature pour l'instant.</p>
-      {:else}
-        <ul class="list">
-          {#each apps as a}
-            <li class:sel={selected?.id === a.id}>
-              <button class="pick" onclick={() => select(a)}>
-                <span class="t">{a.job_title || '(sans titre)'}</span>
-                <span class="muted co">{a.company}</span>
-                <span class="badge">{a.status}</span>
-              </button>
-              <button class="del" title="Supprimer" onclick={() => remove(a)}>×</button>
-            </li>
-          {/each}
-        </ul>
-      {/if}
-    </div>
+    {#if selected}
+      <div class="card">
+        <h3>Actions</h3>
+        <div class="actions">
+          <a class="btn btn-ghost" href={`/api/applications/${selected.id}/letter.md`} download>Télécharger .md</a>
+          <button class="btn btn-ghost" type="button" onclick={() => uploadInput.click()}>Uploader une version corrigée</button>
+          <input bind:this={uploadInput} type="file" accept=".md,text/markdown" hidden onchange={onUploadCorrected} />
+          <button class="btn btn-ghost" type="button" onclick={regenerate} disabled={creating}>Régénérer</button>
+          <button class="btn" type="button" onclick={send} disabled={sending || !selected.has_letter}>
+            {sending ? 'Envoi…' : selected.status === 'envoyée' ? 'Renvoyer' : 'Envoyer'}
+          </button>
+        </div>
+      </div>
+    {/if}
   </section>
 
-  <section class="col right">
+  <section class="col center">
     {#if !selected}
       <div class="card empty muted">
         Génère une lettre ou sélectionne une candidature pour la visualiser.
@@ -265,29 +260,41 @@
         {:else}
           <div class="empty muted">Aucune lettre pour cette candidature.</div>
         {/if}
-
-        <div class="actions">
-          <a class="btn btn-ghost" href={`/api/applications/${selected.id}/letter.md`} download>Télécharger .md</a>
-          <button class="btn btn-ghost" type="button" onclick={() => uploadInput.click()}>Uploader une version corrigée</button>
-          <input bind:this={uploadInput} type="file" accept=".md,text/markdown" hidden onchange={onUploadCorrected} />
-          <button class="btn btn-ghost" type="button" onclick={regenerate} disabled={creating}>Régénérer</button>
-          <button class="btn" type="button" onclick={send} disabled={sending || !selected.has_letter}>
-            {sending ? 'Envoi…' : selected.status === 'envoyée' ? 'Renvoyer' : 'Envoyer'}
-          </button>
-        </div>
       </div>
     {/if}
+  </section>
+
+  <section class="col right">
+    <div class="card">
+      <h3>Mes candidatures</h3>
+      {#if apps.length === 0}
+        <p class="muted">Aucune candidature pour l'instant.</p>
+      {:else}
+        <ul class="list">
+          {#each apps as a}
+            <li class:sel={selected?.id === a.id}>
+              <button class="pick" onclick={() => select(a)}>
+                <span class="t">{a.job_title || '(sans titre)'}</span>
+                <span class="muted co">{a.company}</span>
+                <span class="badge">{a.status}</span>
+              </button>
+              <button class="del" title="Supprimer" onclick={() => remove(a)}>×</button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
   </section>
 </div>
 
 <style>
   .cand {
     display: grid;
-    grid-template-columns: 300px 1fr;
+    grid-template-columns: 300px minmax(0, 1fr) 320px;
     gap: 16px;
     align-items: start;
   }
-  @media (max-width: 760px) {
+  @media (max-width: 1024px) {
     .cand {
       grid-template-columns: 1fr;
     }
@@ -402,11 +409,11 @@
   }
   .actions {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 8px;
-    margin-top: 12px;
   }
   .actions .btn {
     text-decoration: none;
+    text-align: center;
   }
 </style>
