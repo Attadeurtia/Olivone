@@ -44,6 +44,7 @@ type Application struct {
 	External       bool    `json:"external"`
 	CreatedAt      string  `json:"created_at"`
 	SentAt         *string `json:"sent_at"`
+	NextFollowupAt *string `json:"next_followup_at"`
 	HasLetter      bool    `json:"has_letter"`
 	HasOfferPDF    bool    `json:"has_offer_pdf"`
 }
@@ -144,6 +145,38 @@ func (s *Service) Create(ctx context.Context, userID int64, in CreateInput) (App
 		return Application{}, err
 	}
 	return s.Get(userID, appID)
+}
+
+// ExternalInput regroupe les champs d'une candidature faite hors logiciel.
+type ExternalInput struct {
+	JobTitle       string
+	Company        string
+	RecipientEmail string
+	Status         string
+	SentAt         string // "YYYY-MM-DD", optionnel
+	Notes          string
+}
+
+// CreateExternal enregistre une candidature faite hors logiciel (sans lettre).
+func (s *Service) CreateExternal(userID int64, in ExternalInput) (Application, error) {
+	status := strings.TrimSpace(in.Status)
+	if status == "" {
+		status = "envoyée"
+	}
+	var sentAt any
+	if d := strings.TrimSpace(in.SentAt); d != "" {
+		sentAt = d
+	}
+	res, err := s.DB.Exec(
+		`INSERT INTO applications(user_id, job_title, company, recipient_email, source_type, status, external, notes, sent_at)
+		 VALUES(?,?,?,?, 'external', ?, 1, ?, ?)`,
+		userID, in.JobTitle, in.Company, in.RecipientEmail, status, in.Notes, sentAt,
+	)
+	if err != nil {
+		return Application{}, err
+	}
+	id, _ := res.LastInsertId()
+	return s.Get(userID, id)
 }
 
 // Regenerate relance la génération à partir du texte d'offre stocké.
@@ -463,9 +496,9 @@ func buildEmailBody(jobTitle, company, senderName string, hasCV bool) string {
 
 // --- helpers ----------------------------------------------------------------
 
-const selectCols = `SELECT id, job_title, company, recipient_email, source_type, status, notes, external, created_at, sent_at, letter_pdf_path, offer_pdf_path FROM applications`
+const selectCols = `SELECT id, job_title, company, recipient_email, source_type, status, notes, external, created_at, sent_at, next_followup_at, letter_pdf_path, offer_pdf_path FROM applications`
 
-const selectColsWithOffer = `SELECT id, job_title, company, recipient_email, source_type, status, notes, external, created_at, sent_at, letter_pdf_path, offer_pdf_path, offer_text FROM applications`
+const selectColsWithOffer = `SELECT id, job_title, company, recipient_email, source_type, status, notes, external, created_at, sent_at, next_followup_at, letter_pdf_path, offer_pdf_path, offer_text FROM applications`
 
 type scanner interface {
 	Scan(dest ...any) error
@@ -476,14 +509,18 @@ func scanApp(sc scanner) (Application, string, string, error) {
 	var ext int
 	var sentAt sql.NullString
 	var letterPDF, offerPDF string
+	var nextFollowup sql.NullString
 	err := sc.Scan(&a.ID, &a.JobTitle, &a.Company, &a.RecipientEmail, &a.SourceType,
-		&a.Status, &a.Notes, &ext, &a.CreatedAt, &sentAt, &letterPDF, &offerPDF)
+		&a.Status, &a.Notes, &ext, &a.CreatedAt, &sentAt, &nextFollowup, &letterPDF, &offerPDF)
 	if err != nil {
 		return a, "", "", err
 	}
 	a.External = ext == 1
 	if sentAt.Valid {
 		a.SentAt = &sentAt.String
+	}
+	if nextFollowup.Valid {
+		a.NextFollowupAt = &nextFollowup.String
 	}
 	a.HasLetter = letterPDF != ""
 	a.HasOfferPDF = offerPDF != ""
@@ -495,14 +532,18 @@ func scanAppWithOffer(sc scanner, offerText *string) (Application, string, strin
 	var ext int
 	var sentAt sql.NullString
 	var letterPDF, offerPDF string
+	var nextFollowup sql.NullString
 	err := sc.Scan(&a.ID, &a.JobTitle, &a.Company, &a.RecipientEmail, &a.SourceType,
-		&a.Status, &a.Notes, &ext, &a.CreatedAt, &sentAt, &letterPDF, &offerPDF, offerText)
+		&a.Status, &a.Notes, &ext, &a.CreatedAt, &sentAt, &nextFollowup, &letterPDF, &offerPDF, offerText)
 	if err != nil {
 		return a, "", "", err
 	}
 	a.External = ext == 1
 	if sentAt.Valid {
 		a.SentAt = &sentAt.String
+	}
+	if nextFollowup.Valid {
+		a.NextFollowupAt = &nextFollowup.String
 	}
 	a.HasLetter = letterPDF != ""
 	a.HasOfferPDF = offerPDF != ""

@@ -91,6 +91,10 @@ func (s *Server) routes() {
 	mux.Handle("GET /api/cv", s.requireAuth(http.HandlerFunc(s.handleGetCV)))
 	mux.Handle("DELETE /api/cv", s.requireAuth(http.HandlerFunc(s.handleDeleteCV)))
 
+	// Agenda : export iCal + candidatures externes (faites hors logiciel).
+	mux.Handle("GET /api/agenda.ics", s.requireAuth(http.HandlerFunc(s.handleAgendaICS)))
+	mux.Handle("POST /api/applications/external", s.requireAuth(http.HandlerFunc(s.handleCreateExternal)))
+
 	// Route API inconnue -> 404 JSON.
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusNotFound, map[string]any{"error": "route API inconnue"})

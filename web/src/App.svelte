@@ -5,6 +5,7 @@
   import Users from './lib/Users.svelte'
   import Candidature from './lib/Candidature.svelte'
   import Prompt from './lib/Prompt.svelte'
+  import Agenda from './lib/Agenda.svelte'
 
   type Theme = 'auto' | 'light' | 'dark'
   type View = 'candidature' | 'agenda' | 'prompt' | 'reglages' | 'utilisateurs'
@@ -51,9 +52,6 @@
     user = null
   }
 
-  const futureViews: { id: View; label: string; milestone: string }[] = [
-    { id: 'agenda', label: 'Agenda', milestone: 'M4' },
-  ]
 </script>
 
 {#if loading}
@@ -61,18 +59,13 @@
 {:else if !user}
   <Login onSuccess={(u) => (user = u)} {theme} {setTheme} />
 {:else}
-  <div class="shell" class:wide={view === 'candidature'}>
+  <div class="shell" class:wide={view === 'candidature' || view === 'agenda'}>
     <header>
       <div class="brand">Olivone</div>
       <nav>
         <button class="tab" class:active={view === 'candidature'} onclick={() => (view = 'candidature')}>Candidature</button>
         <button class="tab" class:active={view === 'prompt'} onclick={() => (view = 'prompt')}>Prompt</button>
-        {#each futureViews as v}
-          <button
-            class="tab"
-            class:active={view === v.id}
-            onclick={() => (view = v.id)}>{v.label}</button>
-        {/each}
+        <button class="tab" class:active={view === 'agenda'} onclick={() => (view = 'agenda')}>Agenda</button>
         <button class="tab" class:active={view === 'reglages'} onclick={() => (view = 'reglages')}>
           Réglages
         </button>
@@ -104,14 +97,10 @@
         <Prompt />
       {:else if view === 'reglages'}
         <Settings />
+      {:else if view === 'agenda'}
+        <Agenda />
       {:else if view === 'utilisateurs' && user.is_admin}
         <Users />
-      {:else}
-        {@const v = futureViews.find((f) => f.id === view)}
-        <div class="card placeholder">
-          <h2>{v?.label}</h2>
-          <p class="muted">Écran prévu au jalon {v?.milestone}. Rien à afficher pour l'instant.</p>
-        </div>
       {/if}
     </main>
   </div>
