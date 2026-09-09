@@ -34,11 +34,11 @@ var fontsFS embed.FS
 // Palette du gabarit. Teinte crème très légère du papier + un accent sobre pour
 // se démarquer sans surcharger (règle : ça doit rester subtil).
 const (
-	colPaper  = "#faf8f2" // blanc cassé chaud (fond de page)
-	colCard   = "#f1eee5" // fond de l'encart / de l'objet
-	colInk    = "#1e1d1a" // texte principal (noir chaud)
-	colMuted  = "#5b574e" // lignes de coordonnées
-	colAccent = "#4a5a6a" // filet + libellé « Objet » (ardoise sobre)
+	colPaper = "#fdfdfa" // blanc à peine réchauffé (fond de page)
+	colCard  = "#f5f3ec" // fond discret de l'encart / de l'objet
+	colInk   = "#1e1d1a" // texte principal (noir chaud)
+	colMuted = "#5b574e" // lignes de coordonnées
+	colHair  = "#e4e0d6" // filet neutre très fin (bordures)
 )
 
 // Party représente un bloc de coordonnées (expéditeur ou destinataire).
@@ -170,8 +170,8 @@ func buildDoc(l Letter, date, objet, body string) string {
 	// Objet mis en évidence.
 	if strings.TrimSpace(objet) != "" {
 		b.WriteString("#v(1.3em)\n")
-		b.WriteString(`#block(width: 100%, fill: rgb("` + colCard + `"), inset: (x: 12pt, y: 9pt), radius: 3pt, stroke: (left: 2.5pt + rgb("` + colAccent + `")))[`)
-		b.WriteString(`#text(weight: 600, fill: rgb("` + colAccent + `"))[Objet — ]` + escapeTypst(objet) + "]\n\n")
+		b.WriteString(`#block(width: 100%, fill: rgb("` + colCard + `"), inset: (x: 12pt, y: 9pt), radius: 3pt, stroke: 0.75pt + rgb("` + colHair + `"))[`)
+		b.WriteString(`#text(weight: 600)[Objet — ]` + escapeTypst(objet) + "]\n\n")
 		b.WriteString("#v(1.2em)\n\n")
 	} else {
 		b.WriteString("#v(1.3em)\n\n")
@@ -186,7 +186,7 @@ func buildDoc(l Letter, date, objet, body string) string {
 // senderCard : encart de l'expéditeur (fond crème + filet d'accent à gauche).
 func senderCard(p Party) string {
 	inner := partyContent(p, "12pt")
-	return `block(fill: rgb("` + colCard + `"), inset: (x: 11pt, y: 10pt), radius: 4pt, stroke: (left: 2pt + rgb("` + colAccent + `")))[#[
+	return `block(fill: rgb("` + colCard + `"), inset: (x: 11pt, y: 10pt), radius: 4pt, stroke: 0.75pt + rgb("` + colHair + `"))[#[
     #set par(justify: false, leading: 0.55em)
 ` + inner + `
   ]]`
