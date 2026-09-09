@@ -12,6 +12,11 @@
   // Champs non secrets.
   let defaultRecipient = $state('')
   let profileMd = $state('')
+  // Identité affichée dans l'en-tête de la lettre (encart expéditeur).
+  let senderName = $state('')
+  let senderAddress = $state('')
+  let senderPhone = $state('')
+  let senderCity = $state('')
   let mistralModel = $state('mistral-small-latest')
   let smtpHost = $state('')
   let smtpPort = $state(587)
@@ -44,6 +49,10 @@
       const s = await api.get('/api/settings')
       defaultRecipient = s.default_recipient ?? ''
       profileMd = s.profile_md ?? ''
+      senderName = s.sender_name ?? ''
+      senderAddress = s.sender_address ?? ''
+      senderPhone = s.sender_phone ?? ''
+      senderCity = s.sender_city ?? ''
       mistralModel = s.mistral_model ?? 'mistral-small-latest'
       smtpHost = s.smtp_host ?? ''
       smtpPort = s.smtp_port ?? 587
@@ -74,6 +83,10 @@
     const payload: Record<string, unknown> = {
       default_recipient: defaultRecipient,
       profile_md: profileMd,
+      sender_name: senderName,
+      sender_address: senderAddress,
+      sender_phone: senderPhone,
+      sender_city: senderCity,
       mistral_model: mistralModel,
       smtp_host: smtpHost,
       smtp_port: Number(smtpPort),
@@ -183,6 +196,31 @@
             <button type="button" class="btn btn-ghost" onclick={removeCV} disabled={cvBusy}>Retirer</button>
           {/if}
           <input bind:this={cvInput} type="file" accept="application/pdf" hidden onchange={uploadCV} />
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>En-tête de lettre</h3>
+      <p class="muted small">Ces coordonnées composent l'encart en haut à gauche du PDF. L'e-mail affiché est celui de votre compte.</p>
+      <div class="row">
+        <div class="field">
+          <label for="sn">Nom affiché</label>
+          <input id="sn" bind:value={senderName} placeholder="laisser vide = nom du compte" />
+        </div>
+        <div class="field">
+          <label for="sc">Ville (pour la date)</label>
+          <input id="sc" bind:value={senderCity} placeholder="Lausanne" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="sadr">Adresse</label>
+          <textarea id="sadr" class="addr" bind:value={senderAddress} placeholder="12 rue des Lilas&#10;1000 Lausanne"></textarea>
+        </div>
+        <div class="field">
+          <label for="sph">Téléphone</label>
+          <input id="sph" bind:value={senderPhone} placeholder="+41 79 123 45 67" />
         </div>
       </div>
     </section>
@@ -301,6 +339,14 @@
   }
   .short {
     max-width: 220px;
+  }
+  .small {
+    font-size: 13px;
+    margin: -4px 0 12px;
+  }
+  textarea.addr {
+    min-height: 64px;
+    resize: vertical;
   }
   .cvrow {
     display: flex;

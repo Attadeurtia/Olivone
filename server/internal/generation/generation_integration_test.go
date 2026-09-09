@@ -45,7 +45,7 @@ func TestGenerateRealLetter(t *testing.T) {
 			t.Fatalf("écriture .md: %v", err)
 		}
 		if bin := os.Getenv("OLIVONE_TYPST_BIN"); bin != "" {
-			if err := typst.New(bin).RenderLetter(context.Background(), letter, out+".pdf"); err != nil {
+			if err := typst.New(bin).RenderLetter(context.Background(), typst.Letter{Markdown: letter}, out+".pdf"); err != nil {
 				t.Fatalf("rendu PDF: %v", err)
 			}
 			t.Logf("PDF écrit : %s.pdf", out)

@@ -27,6 +27,10 @@ type Settings struct {
 	ThemePref            string
 	ProfileMD            string
 	Signature            string
+	SenderName           string
+	SenderAddress        string
+	SenderPhone          string
+	SenderCity           string
 }
 
 // GetSettings lit les réglages d'un utilisateur.
@@ -38,13 +42,15 @@ func (s *Service) GetSettings(userID int64) (Settings, error) {
 		smtp_host, smtp_port, smtp_username, smtp_password_enc, smtp_from,
 		imap_host, imap_port, imap_username, imap_password_enc,
 		auto_send_enabled, followup_enabled, followup_interval_days,
-		theme_pref, profile_md, signature
+		theme_pref, profile_md, signature,
+		sender_name, sender_address, sender_phone, sender_city
 		FROM user_settings WHERE user_id = ?`, userID).Scan(
 		&st.DefaultRecipient, &st.MistralAPIKeyEnc, &st.MistralModel,
 		&st.SMTPHost, &st.SMTPPort, &st.SMTPUsername, &st.SMTPPasswordEnc, &st.SMTPFrom,
 		&st.IMAPHost, &st.IMAPPort, &st.IMAPUsername, &st.IMAPPasswordEnc,
 		&autoSend, &followup, &st.FollowupIntervalDays,
 		&st.ThemePref, &st.ProfileMD, &st.Signature,
+		&st.SenderName, &st.SenderAddress, &st.SenderPhone, &st.SenderCity,
 	)
 	st.AutoSendEnabled = autoSend == 1
 	st.FollowupEnabled = followup == 1
@@ -77,6 +83,10 @@ type SettingsInput struct {
 	ThemePref            *string `json:"theme_pref"`
 	ProfileMD            *string `json:"profile_md"`
 	Signature            *string `json:"signature"`
+	SenderName           *string `json:"sender_name"`
+	SenderAddress        *string `json:"sender_address"`
+	SenderPhone          *string `json:"sender_phone"`
+	SenderCity           *string `json:"sender_city"`
 }
 
 // UpdateSettings applique les champs fournis (UPDATE partiel).
@@ -132,6 +142,18 @@ func (s *Service) UpdateSettings(userID int64, in SettingsInput) error {
 	}
 	if in.Signature != nil {
 		add("signature", *in.Signature)
+	}
+	if in.SenderName != nil {
+		add("sender_name", *in.SenderName)
+	}
+	if in.SenderAddress != nil {
+		add("sender_address", *in.SenderAddress)
+	}
+	if in.SenderPhone != nil {
+		add("sender_phone", *in.SenderPhone)
+	}
+	if in.SenderCity != nil {
+		add("sender_city", *in.SenderCity)
 	}
 
 	// Secrets : chiffrés avant stockage.

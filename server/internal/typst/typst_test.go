@@ -53,7 +53,20 @@ func TestRenderLetterProducesPDF(t *testing.T) {
 		"Madame, Monsieur,\n\nJe vous écris au sujet de votre offre. " +
 		"Coût & symboles : 100$ #test _x_\n\nBien cordialement,\n[Votre nom]"
 
-	if err := New(bin).RenderLetter(context.Background(), md, out); err != nil {
+	letter := Letter{
+		Sender: Party{
+			Name:  "Jean Dupont",
+			Lines: []string{"12 rue des Fleurs", "75000 Paris", "06 12 34 56 78", "jean@example.fr"},
+		},
+		Recipient: Party{
+			Lead:  "À l'attention du service de recrutement",
+			Name:  "Entreprise Acme",
+			Lines: []string{"recrutement@acme.fr"},
+		},
+		City:     "Paris",
+		Markdown: md,
+	}
+	if err := New(bin).RenderLetter(context.Background(), letter, out); err != nil {
 		t.Fatalf("RenderLetter: %v", err)
 	}
 	b, err := os.ReadFile(out)

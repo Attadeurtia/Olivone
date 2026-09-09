@@ -138,7 +138,7 @@ func (s *Service) Create(ctx context.Context, userID int64, in CreateInput) (App
 		JobTitle:  in.JobTitle,
 		Company:   in.Company,
 		Recipient: recipient,
-	}); err != nil {
+	}, s.letterHead(userID, in.Company, recipient, settings)); err != nil {
 		// Nettoyage : ligne + fichiers.
 		_, _ = s.DB.Exec(`DELETE FROM applications WHERE id = ?`, appID)
 		_ = os.RemoveAll(s.letterDir(userID, appID))
@@ -201,7 +201,7 @@ func (s *Service) Regenerate(ctx context.Context, userID, appID int64) (Applicat
 		JobTitle:  app.JobTitle,
 		Company:   app.Company,
 		Recipient: app.RecipientEmail,
-	}); err != nil {
+	}, s.letterHead(userID, app.Company, app.RecipientEmail, settings)); err != nil {
 		return Application{}, err
 	}
 	return s.Get(userID, appID)
@@ -210,7 +210,12 @@ func (s *Service) Regenerate(ctx context.Context, userID, appID int64) (Applicat
 // UpdateLetter remplace le Markdown (version corrigée) puis re-rend le PDF.
 // L'ancienne version est conservée en letter.bak.md (règle : ne pas perdre de données).
 func (s *Service) UpdateLetter(ctx context.Context, userID, appID int64, markdown string) (Application, error) {
-	if _, _, err := s.getRaw(userID, appID); err != nil {
+	app, _, err := s.getRaw(userID, appID)
+	if err != nil {
+		return Application{}, err
+	}
+	settings, err := s.Users.GetSettings(userID)
+	if err != nil {
 		return Application{}, err
 	}
 	dir := s.letterDir(userID, appID)
@@ -225,7 +230,9 @@ func (s *Service) UpdateLetter(ctx context.Context, userID, appID int64, markdow
 		return Application{}, err
 	}
 	pdfPath := filepath.Join(dir, "letter.pdf")
-	if err := s.Typst.RenderLetter(ctx, markdown, pdfPath); err != nil {
+	head := s.letterHead(userID, app.Company, app.RecipientEmail, settings)
+	head.Markdown = markdown
+	if err := s.Typst.RenderLetter(ctx, head, pdfPath); err != nil {
 		return Application{}, fmt.Errorf("rendu PDF: %w", err)
 	}
 	if _, err := s.DB.Exec(
@@ -237,8 +244,43 @@ func (s *Service) UpdateLetter(ctx context.Context, userID, appID int64, markdow
 	return s.Get(userID, appID)
 }
 
-// generateInto génère la lettre, écrit md + pdf, met à jour la ligne.
-func (s *Service) generateInto(ctx context.Context, userID, appID int64, apiKey, model string, in prompt.Inputs) error {
+// letterHead construit l'en-tête de la lettre (encart expéditeur + coordonnées
+// du destinataire) à partir des réglages et de la candidature. Le nom retombe
+// sur le nom d'affichage du compte, l'e-mail sur l'adresse du compte.
+func (s *Service) letterHead(userID int64, company, recipientEmail string, st users.Settings) typst.Letter {
+	user, _ := s.Users.GetByID(userID)
+
+	var lines []string
+	for _, ln := range strings.Split(st.SenderAddress, "\n") {
+		if t := strings.TrimSpace(ln); t != "" {
+			lines = append(lines, t)
+		}
+	}
+	if p := strings.TrimSpace(st.SenderPhone); p != "" {
+		lines = append(lines, p)
+	}
+	if em := strings.TrimSpace(user.Email); em != "" {
+		lines = append(lines, em)
+	}
+
+	rcpt := typst.Party{
+		Lead: "À l'attention du service de recrutement",
+		Name: strings.TrimSpace(company),
+	}
+	if em := strings.TrimSpace(recipientEmail); em != "" {
+		rcpt.Lines = []string{em}
+	}
+
+	return typst.Letter{
+		Sender:    typst.Party{Name: firstNonEmpty(st.SenderName, user.DisplayName), Lines: lines},
+		Recipient: rcpt,
+		City:      strings.TrimSpace(st.SenderCity),
+	}
+}
+
+// generateInto génère la lettre, écrit md + pdf, met à jour la ligne. head porte
+// l'en-tête (expéditeur/destinataire) ; son corps est rempli ici.
+func (s *Service) generateInto(ctx context.Context, userID, appID int64, apiKey, model string, in prompt.Inputs, head typst.Letter) error {
 	letterMD, err := generation.Generate(ctx, apiKey, model, in)
 	if err != nil {
 		return err
@@ -252,7 +294,8 @@ func (s *Service) generateInto(ctx context.Context, userID, appID int64, apiKey,
 		return err
 	}
 	pdfPath := filepath.Join(dir, "letter.pdf")
-	if err := s.Typst.RenderLetter(ctx, letterMD, pdfPath); err != nil {
+	head.Markdown = letterMD
+	if err := s.Typst.RenderLetter(ctx, head, pdfPath); err != nil {
 		return fmt.Errorf("rendu PDF: %w", err)
 	}
 	_, err = s.DB.Exec(

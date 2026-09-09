@@ -28,6 +28,10 @@ type settingsView struct {
 	ThemePref            string `json:"theme_pref"`
 	ProfileMD            string `json:"profile_md"`
 	Signature            string `json:"signature"`
+	SenderName           string `json:"sender_name"`
+	SenderAddress        string `json:"sender_address"`
+	SenderPhone          string `json:"sender_phone"`
+	SenderCity           string `json:"sender_city"`
 	CVSet                bool   `json:"cv_set"`
 }
 
@@ -51,6 +55,10 @@ func toSettingsView(st users.Settings, cvSet bool) settingsView {
 		ThemePref:            st.ThemePref,
 		ProfileMD:            st.ProfileMD,
 		Signature:            st.Signature,
+		SenderName:           st.SenderName,
+		SenderAddress:        st.SenderAddress,
+		SenderPhone:          st.SenderPhone,
+		SenderCity:           st.SenderCity,
 		CVSet:                cvSet,
 	}
 }

@@ -113,6 +113,9 @@ en base, jamais renvoyés en clair) :
 - **E-mail — SMTP** (serveur, port, identifiant, mot de passe, expéditeur).
 - **E-mail — IMAP** (pour plus tard : détection des réponses, jalon M5).
 - **CV** (PDF joint aux e-mails).
+- **En-tête de lettre** (nom, adresse, téléphone, ville) : compose l'encart
+  d'expéditeur du PDF. Optionnel — le nom retombe sur le nom du compte et
+  l'e-mail sur l'adresse du compte.
 - **Profil / parcours**, et dans **Prompt** son template personnel.
 
 ## 8. Automatisations (désactivées par défaut)
