@@ -138,7 +138,7 @@ func (s *Service) Create(ctx context.Context, userID int64, in CreateInput) (App
 		JobTitle:  in.JobTitle,
 		Company:   in.Company,
 		Recipient: recipient,
-	}, s.letterHead(userID, in.Company, recipient, settings)); err != nil {
+	}, s.letterHead(userID, in.JobTitle, in.Company, recipient, settings)); err != nil {
 		// Nettoyage : ligne + fichiers.
 		_, _ = s.DB.Exec(`DELETE FROM applications WHERE id = ?`, appID)
 		_ = os.RemoveAll(s.letterDir(userID, appID))
@@ -201,7 +201,7 @@ func (s *Service) Regenerate(ctx context.Context, userID, appID int64) (Applicat
 		JobTitle:  app.JobTitle,
 		Company:   app.Company,
 		Recipient: app.RecipientEmail,
-	}, s.letterHead(userID, app.Company, app.RecipientEmail, settings)); err != nil {
+	}, s.letterHead(userID, app.JobTitle, app.Company, app.RecipientEmail, settings)); err != nil {
 		return Application{}, err
 	}
 	return s.Get(userID, appID)
@@ -230,7 +230,7 @@ func (s *Service) UpdateLetter(ctx context.Context, userID, appID int64, markdow
 		return Application{}, err
 	}
 	pdfPath := filepath.Join(dir, "letter.pdf")
-	head := s.letterHead(userID, app.Company, app.RecipientEmail, settings)
+	head := s.letterHead(userID, app.JobTitle, app.Company, app.RecipientEmail, settings)
 	head.Markdown = markdown
 	if err := s.Typst.RenderLetter(ctx, head, pdfPath); err != nil {
 		return Application{}, fmt.Errorf("rendu PDF: %w", err)
@@ -247,7 +247,7 @@ func (s *Service) UpdateLetter(ctx context.Context, userID, appID int64, markdow
 // letterHead construit l'en-tête de la lettre (encart expéditeur + coordonnées
 // du destinataire) à partir des réglages et de la candidature. Le nom retombe
 // sur le nom d'affichage du compte, l'e-mail sur l'adresse du compte.
-func (s *Service) letterHead(userID int64, company, recipientEmail string, st users.Settings) typst.Letter {
+func (s *Service) letterHead(userID int64, jobTitle, company, recipientEmail string, st users.Settings) typst.Letter {
 	user, _ := s.Users.GetByID(userID)
 
 	var lines []string
@@ -274,6 +274,7 @@ func (s *Service) letterHead(userID int64, company, recipientEmail string, st us
 	return typst.Letter{
 		Sender:    typst.Party{Name: firstNonEmpty(st.SenderName, user.DisplayName), Lines: lines},
 		Recipient: rcpt,
+		Subject:   strings.TrimSpace(jobTitle),
 		City:      strings.TrimSpace(st.SenderCity),
 	}
 }

@@ -35,10 +35,8 @@ var fontsFS embed.FS
 // se démarquer sans surcharger (règle : ça doit rester subtil).
 const (
 	colPaper = "#fdfdfa" // blanc à peine réchauffé (fond de page)
-	colCard  = "#f5f3ec" // fond discret de l'encart / de l'objet
 	colInk   = "#1e1d1a" // texte principal (noir chaud)
 	colMuted = "#5b574e" // lignes de coordonnées
-	colHair  = "#e4e0d6" // filet neutre très fin (bordures)
 )
 
 // Party représente un bloc de coordonnées (expéditeur ou destinataire).
@@ -50,8 +48,9 @@ type Party struct {
 
 // Letter regroupe tout ce qu'il faut pour composer la lettre.
 type Letter struct {
-	Sender    Party     // expéditeur (encart haut-gauche)
+	Sender    Party     // expéditeur (haut-gauche)
 	Recipient Party     // destinataire (haut-droite)
+	Subject   string    // intitulé du poste, affiché en gras à la place de « Objet »
 	City      string    // ville pour « Ville, le <date> » (optionnel)
 	Date      time.Time // date de la lettre ; zéro => maintenant
 	Markdown  string    // corps de la lettre (commence par « Objet : … »)
@@ -153,26 +152,29 @@ func buildDoc(l Letter, date, objet, body string) string {
 	var b strings.Builder
 
 	b.WriteString(`#set page(paper: "a4", margin: (x: 2.3cm, top: 2cm, bottom: 2cm), fill: rgb("` + colPaper + `"))
-#set text(font: ("Spectral", "Libertinus Serif"), size: 11pt, lang: "fr", region: "FR", fill: rgb("` + colInk + `"))
-#set par(justify: true, leading: 0.7em, spacing: 1.05em)
-#show heading: set text(size: 12pt, weight: "semibold")
+#set text(font: ("Spectral", "Libertinus Serif"), size: 11.5pt, weight: 500, lang: "fr", region: "FR", fill: rgb("` + colInk + `"))
+#set par(justify: true, leading: 0.72em, spacing: 1.1em)
+#show heading: set text(weight: "bold")
 
 `)
 
-	// En-tête : encart expéditeur (gauche) + destinataire (droite).
+	// En-tête : expéditeur (gauche) + destinataire (droite), en texte simple.
 	b.WriteString("#grid(\n  columns: (1.05fr, 0.95fr),\n  column-gutter: 1.1cm,\n  align: (left + top, right + top),\n")
-	b.WriteString("  " + senderCard(l.Sender) + ",\n")
+	b.WriteString("  " + senderBlock(l.Sender) + ",\n")
 	b.WriteString("  " + recipientBlock(l.Recipient) + ",\n)\n\n")
 
 	// Date (ville, le …), alignée à droite.
-	b.WriteString("#v(1.5em)\n#align(right)[#text(size: 10.5pt)[" + escapeTypst(dateLine(l.City, date)) + "]]\n\n")
+	b.WriteString("#v(1.6em)\n#align(right)[#text(size: 10.5pt)[" + escapeTypst(dateLine(l.City, date)) + "]]\n\n")
 
-	// Objet mis en évidence.
-	if strings.TrimSpace(objet) != "" {
-		b.WriteString("#v(1.3em)\n")
-		b.WriteString(`#block(width: 100%, fill: rgb("` + colCard + `"), inset: (x: 12pt, y: 9pt), radius: 3pt, stroke: 0.75pt + rgb("` + colHair + `"))[`)
-		b.WriteString(`#text(weight: 600)[Objet — ]` + escapeTypst(objet) + "]\n\n")
-		b.WriteString("#v(1.2em)\n\n")
+	// Intitulé du poste, en gras (remplace la mention « Objet », sans encadré).
+	title := strings.TrimSpace(l.Subject)
+	if title == "" {
+		title = strings.TrimSpace(objet)
+	}
+	if title != "" {
+		b.WriteString("#v(1.4em)\n")
+		b.WriteString(`#text(size: 15pt, weight: 700)[` + escapeTypst(title) + "]\n\n")
+		b.WriteString("#v(1em)\n\n")
 	} else {
 		b.WriteString("#v(1.3em)\n\n")
 	}
@@ -183,10 +185,10 @@ func buildDoc(l Letter, date, objet, body string) string {
 	return b.String()
 }
 
-// senderCard : encart de l'expéditeur (fond crème + filet d'accent à gauche).
-func senderCard(p Party) string {
-	inner := partyContent(p, "12pt")
-	return `block(fill: rgb("` + colCard + `"), inset: (x: 11pt, y: 10pt), radius: 4pt, stroke: 0.75pt + rgb("` + colHair + `"))[#[
+// senderBlock : coordonnées de l'expéditeur, en texte simple (sans encadré).
+func senderBlock(p Party) string {
+	inner := partyContent(p, "13pt")
+	return `[#[
     #set par(justify: false, leading: 0.55em)
 ` + inner + `
   ]]`
@@ -209,7 +211,7 @@ func partyContent(p Party, nameSize string) string {
 		parts = append(parts, `#text(size: 8.5pt, fill: rgb("`+colMuted+`"))[`+escapeTypst(s)+`]`)
 	}
 	if s := strings.TrimSpace(p.Name); s != "" {
-		parts = append(parts, `#text(size: `+nameSize+`, weight: 600)[`+escapeTypst(s)+`]`)
+		parts = append(parts, `#text(size: `+nameSize+`, weight: 700)[`+escapeTypst(s)+`]`)
 	}
 	var lines []string
 	for _, ln := range p.Lines {
