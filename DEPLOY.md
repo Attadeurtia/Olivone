@@ -176,6 +176,13 @@ Revenir en arrière : `git checkout <commit-précédent>` puis
   Une erreur `OLIVONE_MASTER_KEY est requis` = variable manquante dans `.env`.
 - **502 depuis SWAG** : olivone et SWAG ne sont pas sur le même réseau, ou le
   nom du conteneur/upstream ne correspond pas à la conf.
+- **Le sous-domaine tombe sur le site par défaut de SWAG** (un autre site que
+  toi, ou la page d'accueil SWAG) alors que `curl` et le téléphone affichent
+  bien Olivone : ton SWAG a **HTTP/3 (QUIC)** activé et le navigateur bascule en
+  HTTP/3, mais la conf d'Olivone n'a pas d'écouteur QUIC → la requête retombe sur
+  le `default_server`. Ajoute `listen 443 quic;` et `listen [::]:443 quic;` dans
+  `olivone.subdomain.conf` (comme les autres vhosts), puis `nginx -t` et reload.
+  Compare avec `docker exec swag nginx -T | grep -E 'server_name|listen'`.
 - **Les lettres ne se génèrent pas** : clé Mistral absente dans Réglages.
 
 ## Check-list sécurité

@@ -1,4 +1,4 @@
-# Exemple de configuration SWAG pour Olivone.
+# Configuration SWAG pour Olivone.
 # Copier vers :  swag/config/nginx/proxy-confs/olivone.subdomain.conf
 # puis adapter le sous-domaine et le nom du conteneur si besoin.
 #
@@ -6,8 +6,14 @@
 # (même réseau Docker). Voir les notes réseau dans docker-compose.yml.
 
 server {
+    # HTTP/3 (QUIC) : garder les écouteurs « quic » pour que les navigateurs qui
+    # basculent en HTTP/3 tombent bien sur Olivone et non sur le site par défaut
+    # (default_server) de SWAG. Ils doivent être présents comme sur les autres
+    # vhosts. À retirer uniquement si ton SWAG n'a pas HTTP/3 activé.
     listen 443 ssl;
+    listen 443 quic;
     listen [::]:443 ssl;
+    listen [::]:443 quic;
 
     server_name olivone.*;
 
