@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -17,8 +18,9 @@ import (
 var placeholderFS embed.FS
 
 // staticHandler sert le frontend depuis WebDir s'il existe, sinon la page
-// placeholder embarquée. Dans les deux cas, le routage SPA renvoie index.html
-// pour les chemins inconnus.
+// placeholder embarquée. Le routage SPA renvoie index.html pour les routes
+// applicatives (chemins sans extension) ; une ressource statique absente renvoie
+// 404 (jamais l'index HTML à sa place — voir spaFileServer).
 func (s *Server) staticHandler() http.Handler {
 	if s.cfg.WebDir != "" {
 		if _, err := os.Stat(filepath.Join(s.cfg.WebDir, "index.html")); err == nil {
@@ -37,9 +39,26 @@ func spaFileServer(fsys fs.FS) http.Handler {
 			p = "index.html"
 		}
 		if _, err := fs.Stat(fsys, p); err != nil {
-			// Fichier absent -> fallback SPA vers index.html.
+			// Fichier absent. Pour une ressource statique (chemin avec extension,
+			// ex. /assets/index-xxxx.css), renvoyer 404 : NE JAMAIS servir l'index
+			// HTML à sa place. Sinon le navigateur met en cache ce « 200 text/html »
+			// sous une URL de bundle au nom immuable (haché), et la page reste
+			// cassée (CSS/JS refusés pour cause de mauvais type MIME).
+			if path.Ext(p) != "" {
+				http.NotFound(w, r)
+				return
+			}
+			// Route SPA (sans extension, ex. /agenda) -> coquille index.html.
 			serveIndex(w, fsys)
 			return
+		}
+		// Ressources versionnées (hash dans le nom) : cache long et immuable.
+		// La coquille index.html doit au contraire toujours être revalidée pour
+		// ne jamais pointer vers d'anciens hachages d'assets.
+		if strings.HasPrefix(p, "assets/") {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		} else if p == "index.html" {
+			w.Header().Set("Cache-Control", "no-cache")
 		}
 		fileServer.ServeHTTP(w, r)
 	})
@@ -51,6 +70,9 @@ func serveIndex(w http.ResponseWriter, fsys fs.FS) {
 		http.Error(w, "index.html introuvable", http.StatusInternalServerError)
 		return
 	}
+	// La coquille SPA ne doit jamais être servie « périmée » : toujours
+	// revalider pour récupérer les bons noms de bundles après un déploiement.
+	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write(data)
 }
